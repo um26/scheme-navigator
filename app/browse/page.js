@@ -4,6 +4,7 @@ import Link from "next/link";
 import { stripMarkdown } from "../../lib/markdownLite";
 import { getServerLocale } from "../../lib/i18n/getServerLocale";
 import { translate } from "../../lib/i18n/dictionaries";
+import { localizeState } from "../../lib/i18n/entities";
 
 const PAGE_SIZE = 20;
 const CATEGORIES = ["SC", "ST", "OBC", "EWS"];
@@ -59,7 +60,12 @@ export default function BrowsePage({ searchParams }) {
   const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const regions = getRegions();
   const baseParams = { region, q, category, gender };
-  const regionLabel = region === "Central" ? t("browse_central") : region === "All" ? t("browse_all") : region;
+  const regionLabel =
+    region === "Central"
+      ? t("browse_central")
+      : region === "All"
+      ? t("browse_all")
+      : localizeState(locale, region);
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-10">
@@ -123,7 +129,7 @@ export default function BrowsePage({ searchParams }) {
                 region === r ? "bg-bottle text-white border-bottle" : "bg-white/60 text-ink border-borderc hover:bg-white"
               }`}
             >
-              {r}
+              {localizeState(locale, r)}
             </Link>
           ))}
       </div>

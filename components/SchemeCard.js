@@ -5,37 +5,40 @@ import BookmarkButton from "./BookmarkButton";
 import WhyEligible from "./WhyEligible";
 import { stripMarkdown } from "../lib/markdownLite";
 import { useLanguage } from "../lib/i18n/LanguageContext";
+import { localizeState } from "../lib/i18n/entities";
+import { localizeScheme } from "../lib/i18n/schemeContent";
 
 export default function SchemeCard({ scheme, checks, showBookmark = true }) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
+  const displayScheme = localizeScheme(scheme, locale);
 
   return (
     <div className="group border border-borderc bg-white/60 rounded-lg p-5 shadow-sm hover:shadow-md hover:border-saffron-dark/50 transition-all duration-200">
       <div className="flex items-start justify-between gap-3">
         <Link href={`/scheme/${scheme.id}`} className="min-w-0">
           <h3 className="font-display text-lg text-ledger group-hover:text-saffron-dark transition-colors">
-            {scheme.name}
+            {displayScheme.name}
           </h3>
         </Link>
         <div className="flex items-center gap-2 shrink-0">
           <span className="text-xs font-semibold px-2 py-1 rounded-full bg-bottle/10 text-bottle whitespace-nowrap">
-            {scheme.level === "Central" ? t("browse_central") : scheme.level}
-            {scheme.state ? ` \u00b7 ${scheme.state}` : ""}
+            {scheme.level === "Central" ? t("browse_central") : t("browse_state")}
+            {scheme.state ? ` · ${localizeState(locale, scheme.state)}` : ""}
           </span>
           {showBookmark && <BookmarkButton schemeId={scheme.id} size="sm" />}
         </div>
       </div>
 
-      {scheme.description && (
+      {displayScheme.description && (
         <p className="mt-2 text-sm text-ink/80 font-body line-clamp-3">
-          {stripMarkdown(scheme.description)}
+          {stripMarkdown(displayScheme.description)}
         </p>
       )}
 
-      {scheme.benefits && (
+      {displayScheme.benefits && (
         <p className="mt-2 text-sm text-bottle font-body line-clamp-2">
           <span className="font-semibold">{t("card_benefit")} </span>
-          {stripMarkdown(scheme.benefits)}
+          {stripMarkdown(displayScheme.benefits)}
         </p>
       )}
 

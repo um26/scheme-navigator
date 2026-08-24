@@ -5,6 +5,8 @@ import BookmarkButton from "../../../components/BookmarkButton";
 import RichText from "../../../components/RichText";
 import { getServerLocale } from "../../../lib/i18n/getServerLocale";
 import { translate } from "../../../lib/i18n/dictionaries";
+import { localizeState } from "../../../lib/i18n/entities";
+import { localizeScheme } from "../../../lib/i18n/schemeContent";
 
 // Note: no generateStaticParams here — this page reads the language cookie via
 // getServerLocale(), which forces dynamic rendering (cookies() is a dynamic API in
@@ -26,6 +28,7 @@ export default function SchemeDetailPage({ params }) {
 
   const locale = getServerLocale();
   const t = (key, vars) => translate(locale, key, vars);
+  const displayScheme = localizeScheme(scheme, locale);
 
   const elig = scheme.eligibility || {};
   const ageText =
@@ -47,38 +50,38 @@ export default function SchemeDetailPage({ params }) {
       </Link>
 
       <div className="mt-4 flex items-start justify-between gap-4">
-        <h1 className="font-display text-2xl md:text-3xl text-ledger">{scheme.name}</h1>
+        <h1 className="font-display text-2xl md:text-3xl text-ledger">{displayScheme.name}</h1>
         <BookmarkButton schemeId={scheme.id} />
       </div>
 
       <div className="mt-3 flex flex-wrap gap-2">
         <span className="text-xs font-semibold px-3 py-1 rounded-full bg-bottle/10 text-bottle">
-          {scheme.level === "Central" ? t("browse_central") : scheme.level}
-          {scheme.state ? ` \u00b7 ${scheme.state}` : ""}
+          {scheme.level === "Central" ? t("browse_central") : t("browse_state")}
+          {scheme.state ? ` \u00b7 ${localizeState(locale, scheme.state)}` : ""}
         </span>
-        {scheme.ministry && (
+        {displayScheme.ministry && (
           <span className="text-xs font-semibold px-3 py-1 rounded-full bg-saffron/10 text-saffron-dark">
-            {scheme.ministry}
+            {displayScheme.ministry}
           </span>
         )}
-        {scheme.tags && (
+        {displayScheme.tags && (
           <span className="text-xs font-semibold px-3 py-1 rounded-full bg-ledger/10 text-ledger">
-            {scheme.tags}
+            {displayScheme.tags}
           </span>
         )}
       </div>
 
-      {scheme.description && (
+      {displayScheme.description && (
         <section className="mt-6">
           <h2 className="font-display text-lg text-ledger mb-2">{t("scheme_about")}</h2>
-          <RichText text={scheme.description} className="text-ink/85 font-body" />
+          <RichText text={displayScheme.description} className="text-ink/85 font-body" />
         </section>
       )}
 
-      {scheme.benefits && (
+      {displayScheme.benefits && (
         <section className="mt-6 bg-saffron/10 border border-saffron/30 rounded-lg p-5">
           <h2 className="font-display text-lg text-ledger mb-2">{t("scheme_benefits")}</h2>
-          <RichText text={scheme.benefits} className="text-ink font-body" />
+          <RichText text={displayScheme.benefits} className="text-ink font-body" />
         </section>
       )}
 
@@ -104,17 +107,17 @@ export default function SchemeDetailPage({ params }) {
         <p className="mt-3 text-xs text-muted font-body">{t("scheme_eligibility_note")}</p>
       </section>
 
-      {scheme.applicationProcess && (
+      {displayScheme.applicationProcess && (
         <section className="mt-6">
           <h2 className="font-display text-lg text-ledger mb-2">{t("scheme_how_to_apply")}</h2>
-          <RichText text={scheme.applicationProcess} className="text-ink/85 font-body" />
+          <RichText text={displayScheme.applicationProcess} className="text-ink/85 font-body" />
         </section>
       )}
 
-      {scheme.documentsRequired && (
+      {displayScheme.documentsRequired && (
         <section className="mt-6">
           <h2 className="font-display text-lg text-ledger mb-2">{t("scheme_documents_required")}</h2>
-          <RichText text={scheme.documentsRequired} className="text-ink/85 font-body" />
+          <RichText text={displayScheme.documentsRequired} className="text-ink/85 font-body" />
         </section>
       )}
 

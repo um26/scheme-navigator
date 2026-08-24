@@ -5,6 +5,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { filterEligible } from "../../lib/ruleEngine";
 import { INDIAN_STATES } from "../../lib/indianStates";
 import { useLanguage } from "../../lib/i18n/LanguageContext";
+import { localizeState } from "../../lib/i18n/entities";
 
 function OptionRow({ options, value, onChange }) {
   return (
@@ -28,7 +29,7 @@ function OptionRow({ options, value, onChange }) {
 }
 
 export default function ExplorePage() {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const [schemes, setSchemes] = useState(null);
   const [age, setAge] = useState(30);
   const [income, setIncome] = useState(300000);
@@ -176,7 +177,7 @@ export default function ExplorePage() {
               >
                 <option value="">{t("explore_state_any")}</option>
                 {INDIAN_STATES.map((s) => (
-                  <option key={s} value={s}>{s}</option>
+                  <option key={s} value={s}>{localizeState(locale, s)}</option>
                 ))}
               </select>
             </div>
@@ -201,7 +202,7 @@ export default function ExplorePage() {
                   />
                   <YAxis tick={{ fontSize: 11, fill: "#7A6F5D" }} />
                   <Tooltip
-                    formatter={(v) => [v, "eligible schemes"]}
+                    formatter={(v) => [v, t("browse_scheme_count")]}
                     labelFormatter={(v) => `₹${v.toLocaleString("en-IN")}`}
                   />
                   <Line type="monotone" dataKey="count" stroke="#C46F14" strokeWidth={2} dot={false} />
@@ -216,7 +217,7 @@ export default function ExplorePage() {
                   <CartesianGrid stroke="#D8CBA8" strokeDasharray="3 3" />
                   <XAxis dataKey="age" tick={{ fontSize: 11, fill: "#7A6F5D" }} />
                   <YAxis tick={{ fontSize: 11, fill: "#7A6F5D" }} />
-                  <Tooltip formatter={(v) => [v, "eligible schemes"]} labelFormatter={(v) => `${v}`} />
+                  <Tooltip formatter={(v) => [v, t("browse_scheme_count")]} labelFormatter={(v) => `${v}`} />
                   <Line type="monotone" dataKey="count" stroke="#1F4B3F" strokeWidth={2} dot={false} />
                 </LineChart>
               </ResponsiveContainer>

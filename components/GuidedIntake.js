@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { INDIAN_STATES } from "../lib/indianStates";
 import { useLanguage } from "../lib/i18n/LanguageContext";
+import { localizeState } from "../lib/i18n/entities";
 
 const STEPS = ["basics", "location", "economic", "category", "extra"];
 
@@ -43,7 +44,7 @@ function OptionRow({ options, value, onChange }) {
 }
 
 export default function GuidedIntake({ onSubmit, loading }) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const [step, setStep] = useState(0);
   const [profile, setProfile] = useState({
     age: "",
@@ -128,7 +129,7 @@ export default function GuidedIntake({ onSubmit, loading }) {
             <option value="">{t("guided_state_placeholder")}</option>
             {INDIAN_STATES.map((s) => (
               <option key={s} value={s}>
-                {s}
+                {localizeState(locale, s)}
               </option>
             ))}
           </select>
