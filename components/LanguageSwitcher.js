@@ -36,15 +36,39 @@ export default function LanguageSwitcher() {
 
   return (
     <div className="relative" ref={ref}>
-      <button type="button" onClick={() => !switching && setOpen((o) => !o)} aria-label={t("lang_switch_label")} aria-expanded={open} aria-busy={switching ? "true" : "false"} disabled={switching} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-borderc bg-white/60 text-sm font-body text-ledger hover:border-saffron-dark transition-colors disabled:opacity-70">
-        <span aria-hidden="true">🌐</span><span>{switching ? "…" : current.native}</span><span className={`text-xs transition-transform duration-200 ${open ? "rotate-180" : ""}`}>▾</span>
+      <button
+        type="button"
+        onClick={() => !switching && setOpen((o) => !o)}
+        aria-label={t("lang_switch_label")}
+        aria-expanded={open}
+        aria-busy={switching ? "true" : "false"}
+        disabled={switching}
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-borderc bg-white/60 text-sm font-body text-ledger hover:border-saffron-dark transition-colors disabled:opacity-70"
+      >
+        <span aria-hidden="true">🌐</span>
+        <span dir={current.dir}>{switching ? "…" : current.native}</span>
+        <span className={`text-xs transition-transform duration-200 ${open ? "rotate-180" : ""}`}>▾</span>
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-1 w-48 max-h-80 overflow-y-auto bg-white border border-borderc rounded-lg shadow-lg z-20">
+        <div className="absolute right-0 mt-2 w-64 max-w-[88vw] max-h-[70vh] overflow-y-auto bg-white/95 backdrop-blur-sm border border-borderc rounded-xl shadow-xl z-20 p-1.5">
           {LOCALES.map((l) => (
-            <button key={l.code} type="button" onClick={() => handleSelect(l.code)} className={`w-full text-left px-4 py-2 text-sm font-body transition-colors ${l.code === locale ? "bg-bottle text-white" : "text-ink hover:bg-khadi-dark/50"}`}>
-              <span dir={l.dir}>{l.native}</span>{l.code !== "en" && <span className="text-xs opacity-60 ml-1.5">({l.name})</span>}
+            <button
+              key={l.code}
+              type="button"
+              onClick={() => handleSelect(l.code)}
+              className={`w-full px-3 py-2.5 rounded-lg text-sm font-body transition-colors flex items-center justify-between gap-3 ${
+                l.code === locale
+                  ? "bg-bottle text-white"
+                  : "text-ink hover:bg-khadi-dark/50"
+              }`}
+            >
+              <span dir={l.dir} className="font-medium text-left">
+                {l.native}
+              </span>
+              <span className="text-[11px] opacity-60 text-right truncate">
+                {l.name}
+              </span>
             </button>
           ))}
         </div>
