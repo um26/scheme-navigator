@@ -71,7 +71,7 @@ export default function BrowsePage({ searchParams }) {
     <div className="max-w-4xl mx-auto px-4 py-10">
       <h1 className="font-display text-3xl text-ledger">{t("browse_title")}</h1>
       <p className="mt-2 text-ink/70 font-body">
-        {t("browse_subtitle_prefix")} {schemes.length} {t("browse_subtitle_suffix")}
+        {t("browse_subtitle_full", { n: schemes.length })}
       </p>
 
       <form method="GET" action="/browse" className="mt-6 flex gap-2">
@@ -170,8 +170,9 @@ export default function BrowsePage({ searchParams }) {
       </div>
 
       <p className="mt-4 text-sm text-muted font-body">
-        {filtered.length} {t("browse_scheme_count")}
-        {q ? ` ${t("browse_matching")} "${q}"` : ""} {t("browse_in")} {regionLabel}
+        {q
+          ? t("browse_summary_matching", { n: filtered.length, q, region: regionLabel })
+          : t("browse_summary", { n: filtered.length, region: regionLabel })}
       </p>
 
       <div className="mt-4 grid gap-4">
