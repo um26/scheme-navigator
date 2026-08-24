@@ -1,0 +1,7 @@
+node_modules/
+.next/
+.vercel/
+.schemes-tmp.parquet
+.translation-work/
+public/data/
+.DS_Store
