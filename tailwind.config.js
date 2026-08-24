@@ -1,25 +1,26 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: ["./app/**/*.{js,jsx}", "./components/**/*.{js,jsx}"],
+  darkMode: "class",
   theme: {
     extend: {
       colors: {
         khadi: {
-          DEFAULT: "#F4EDDD",
-          dark: "#E9DFC7",
+          DEFAULT: "rgb(var(--c-khadi) / <alpha-value>)",
+          dark: "rgb(var(--c-khadi-dark) / <alpha-value>)",
         },
-        ledger: "#1F2A3C",
+        ledger: "rgb(var(--c-ledger) / <alpha-value>)",
         saffron: {
-          DEFAULT: "#E38B29",
-          dark: "#C46F14",
+          DEFAULT: "rgb(var(--c-saffron) / <alpha-value>)",
+          dark: "rgb(var(--c-saffron-dark) / <alpha-value>)",
         },
         bottle: {
-          DEFAULT: "#1F4B3F",
-          light: "#2E6B58",
+          DEFAULT: "rgb(var(--c-bottle) / <alpha-value>)",
+          light: "rgb(var(--c-bottle-light) / <alpha-value>)",
         },
-        ink: "#2A2118",
-        muted: "#7A6F5D",
-        borderc: "#D8CBA8",
+        ink: "rgb(var(--c-ink) / <alpha-value>)",
+        muted: "rgb(var(--c-muted) / <alpha-value>)",
+        borderc: "rgb(var(--c-borderc) / <alpha-value>)",
       },
       fontFamily: {
         display: ["'Yatra One'", "cursive"],
