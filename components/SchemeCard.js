@@ -6,11 +6,10 @@ import WhyEligible from "./WhyEligible";
 import { stripMarkdown } from "../lib/markdownLite";
 import { useLanguage } from "../lib/i18n/LanguageContext";
 import { localizeState } from "../lib/i18n/entities";
-import { localizeScheme } from "../lib/i18n/schemeContent";
 
 export default function SchemeCard({ scheme, checks, showBookmark = true }) {
-  const { t, locale } = useLanguage();
-  const displayScheme = localizeScheme(scheme, locale);
+  const { t, locale, localizeSchemeContent } = useLanguage();
+  const displayScheme = localizeSchemeContent(scheme);
 
   return (
     <div className="group border border-borderc bg-white/60 rounded-lg p-5 shadow-sm hover:shadow-md hover:border-saffron-dark/50 transition-all duration-200">
@@ -43,10 +42,7 @@ export default function SchemeCard({ scheme, checks, showBookmark = true }) {
       )}
 
       <div className="mt-3 flex items-center justify-between">
-        <Link
-          href={`/scheme/${scheme.id}`}
-          className="text-xs font-body font-semibold text-saffron-dark hover:underline"
-        >
+        <Link href={`/scheme/${scheme.id}`} className="text-xs font-body font-semibold text-saffron-dark hover:underline">
           {t("card_view_details")}
         </Link>
       </div>
