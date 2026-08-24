@@ -16,18 +16,20 @@
   --c-surface: 255 255 255;
 }
 
+/* Dark mode deliberately uses a separate visual identity: warm charcoal, ivory,
+   copper and saffron. The light theme keeps the original bottle-green palette. */
 html.dark {
-  --c-khadi: 18 22 28;
-  --c-khadi-dark: 26 32 40;
-  --c-ledger: 233 238 246;
-  --c-saffron: 227 139 41;
-  --c-saffron-dark: 180 92 13;
-  --c-bottle: 40 106 86;
-  --c-bottle-light: 50 128 104;
-  --c-ink: 222 217 207;
-  --c-muted: 169 164 152;
-  --c-borderc: 69 76 86;
-  --c-surface: 31 37 46;
+  --c-khadi: 20 18 17;
+  --c-khadi-dark: 30 26 23;
+  --c-ledger: 242 232 216;
+  --c-saffron: 224 145 77;
+  --c-saffron-dark: 181 84 38;
+  --c-bottle: 166 78 43;
+  --c-bottle-light: 197 105 63;
+  --c-ink: 226 217 204;
+  --c-muted: 163 151 136;
+  --c-borderc: 76 67 61;
+  --c-surface: 32 28 25;
   color-scheme: dark;
 }
 
@@ -54,35 +56,57 @@ body {
   transition: background-color .2s ease, color .2s ease;
 }
 html.dark body {
-  background-image: radial-gradient(circle at 1px 1px, rgba(244,237,221,0.035) 1px, transparent 0);
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(244,237,221,.035) 1px, transparent 0),
+    radial-gradient(circle at 50% -10%, rgba(196,111,20,.08), transparent 38%);
+  background-size: 14px 14px, 100% 700px;
+  background-repeat: repeat, no-repeat;
 }
 .font-body { font-family:var(--body-font), sans-serif; }
 h1,h2,h3,.font-display { font-family:var(--display-font), var(--body-font), sans-serif; }
 
-/* Tailwind's built-in white utilities are intentionally remapped to warm charcoal
-   surfaces only in dark mode. Semantic project colors already follow the CSS vars. */
+/* Tailwind's built-in white utilities become warm elevated surfaces in dark mode. */
 html.dark [class~="bg-white"] { background-color: rgb(var(--c-surface)); }
 html.dark [class~="bg-white/40"] { background-color: rgb(var(--c-surface) / .40); }
 html.dark [class~="bg-white/50"] { background-color: rgb(var(--c-surface) / .50); }
-html.dark [class~="bg-white/60"] { background-color: rgb(var(--c-surface) / .60); }
-html.dark [class~="bg-white/70"] { background-color: rgb(var(--c-surface) / .70); }
-html.dark [class~="bg-white/80"] { background-color: rgb(var(--c-surface) / .80); }
-html.dark [class~="bg-white/90"] { background-color: rgb(var(--c-surface) / .90); }
-html.dark [class~="hover:bg-white"]:hover { background-color: rgb(42 49 60); }
-html.dark [class~="hover:bg-white/80"]:hover { background-color: rgb(42 49 60 / .80); }
+html.dark [class~="bg-white/60"] { background-color: rgb(var(--c-surface) / .72); }
+html.dark [class~="bg-white/70"] { background-color: rgb(var(--c-surface) / .80); }
+html.dark [class~="bg-white/80"] { background-color: rgb(var(--c-surface) / .86); }
+html.dark [class~="bg-white/90"] { background-color: rgb(var(--c-surface) / .92); }
+html.dark [class~="hover:bg-white"]:hover { background-color: rgb(43 37 33); }
+html.dark [class~="hover:bg-white/80"]:hover { background-color: rgb(43 37 33 / .86); }
 
-/* Accent colors need separate dark-mode text tones while keeping darker button
-   backgrounds readable with white labels. */
-html.dark [class~="text-bottle"] { color: rgb(102 198 165); }
-html.dark [class~="hover:text-bottle"]:hover { color: rgb(102 198 165); }
-html.dark [class~="text-saffron-dark"] { color: rgb(245 169 77); }
-html.dark [class~="hover:text-saffron-dark"]:hover { color: rgb(245 169 77); }
+/* In dark mode, every former bottle-green accent becomes copper. */
+html.dark [class~="text-bottle"] { color: rgb(231 164 107); }
+html.dark [class~="hover:text-bottle"]:hover { color: rgb(242 181 126); }
+html.dark [class~="text-saffron-dark"] { color: rgb(240 165 95); }
+html.dark [class~="hover:text-saffron-dark"]:hover { color: rgb(248 185 123); }
+html.dark [class~="hover:border-bottle"]:hover { border-color: rgb(var(--c-saffron)); }
+
+/* Ledger is intentionally a light text token in dark mode, so buttons that use
+   bg-ledger + text-white need an explicit copper treatment instead of a white pill. */
+html.dark [class~="bg-ledger"][class~="text-white"] {
+  background-color: rgb(var(--c-saffron-dark));
+  color: rgb(255 248 239);
+}
+html.dark [class~="bg-ledger"][class~="border-ledger"] {
+  border-color: rgb(var(--c-saffron-dark));
+}
+html.dark [class~="hover:border-ledger"]:hover { border-color: rgb(var(--c-saffron)); }
+
+/* Give the main dark surfaces just enough separation without looking like gray cards. */
+html.dark [class~="border-borderc"] { border-color: rgb(var(--c-borderc) / .82); }
+html.dark input,
+html.dark select,
+html.dark textarea {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
+}
 
 .jali-divider { height:20px; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='20' viewBox='0 0 40 20'%3E%3Cpath d='M0 10 L10 0 L20 10 L10 20 Z M20 10 L30 0 L40 10 L30 20 Z' fill='none' stroke='%23C46F14' stroke-width='1' opacity='0.5'/%3E%3C/svg%3E"); background-repeat:repeat-x; background-position:center; }
-html.dark .jali-divider { filter: brightness(1.35) saturate(.9); }
+html.dark .jali-divider { filter: brightness(1.18) saturate(.82); opacity:.78; }
 html[dir="rtl"] a[href^="http"], html[dir="rtl"] code { direction:ltr; unicode-bidi:isolate; }
 a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible { outline:2px solid #C46F14; outline-offset:2px; }
-html.dark a:focus-visible,html.dark button:focus-visible,html.dark input:focus-visible,html.dark select:focus-visible,html.dark textarea:focus-visible { outline-color:#F5A94D; }
+html.dark a:focus-visible,html.dark button:focus-visible,html.dark input:focus-visible,html.dark select:focus-visible,html.dark textarea:focus-visible { outline-color:#E0914D; }
 @keyframes fadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
 .animate-fadeIn { animation:fadeIn .35s ease-out; }
 @media (prefers-reduced-motion:reduce) { .animate-fadeIn { animation:none; } * { transition-duration:.01ms !important; } }
