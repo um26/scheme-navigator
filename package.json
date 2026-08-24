@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build:data": "node scripts/build-schemes.mjs && node scripts/build-map.mjs && node scripts/build-constellation.mjs",
+    "prebuild": "npm run build:data",
     "build": "next build",
     "start": "next start"
   },
