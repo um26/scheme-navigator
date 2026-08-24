@@ -3,6 +3,7 @@
 import Link from "next/link";
 import SavedCount from "./SavedCount";
 import LanguageSwitcher from "./LanguageSwitcher";
+import ThemeToggle from "./ThemeToggle";
 import { useLanguage } from "../lib/i18n/LanguageContext";
 
 export default function Header() {
@@ -23,7 +24,7 @@ export default function Header() {
         <Link href="/" className="font-display text-2xl text-ledger">
           Scheme Navigator
         </Link>
-        <div className="flex items-center gap-4 flex-wrap">
+        <div className="flex items-center gap-3 flex-wrap">
           <nav className="flex flex-wrap gap-x-5 gap-y-1 font-body text-ledger items-center text-sm">
             {LINKS.map((l) => (
               <Link key={l.href} href={l.href} className="hover:text-saffron-dark transition-colors">
@@ -35,7 +36,10 @@ export default function Header() {
               <SavedCount />
             </Link>
           </nav>
-          <LanguageSwitcher />
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <LanguageSwitcher />
+          </div>
         </div>
       </div>
       <div className="jali-divider" />
