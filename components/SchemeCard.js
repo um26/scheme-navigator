@@ -37,7 +37,11 @@ export default function SchemeCard({ scheme, checks, showBookmark = true }) {
   }
 
   function launch() {
-    cardRef.current?.classList.add("is-opening");
+    const el = cardRef.current;
+    if (!el || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    el.classList.add("is-opening");
+    el.style.transform = "perspective(1000px) scale(1.012) translateY(-2px)";
+    el.style.opacity = ".78";
   }
 
   return (
