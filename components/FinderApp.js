@@ -8,6 +8,31 @@ import ShareCard from "./ShareCard";
 import SemanticToggle from "./SemanticToggle";
 import { useLanguage } from "../lib/i18n/LanguageContext";
 
+function ResultsSkeleton() {
+  return (
+    <div className="mt-8 space-y-4 animate-fadeIn" aria-label="Loading matching schemes">
+      <div className="flex items-center gap-2 text-xs uppercase tracking-[0.14em] text-muted font-body">
+        <span className="loading-spark">✦</span>
+        Checking the full scheme catalog
+      </div>
+      {[0, 1, 2].map((i) => (
+        <div key={i} className="rounded-2xl border border-borderc bg-white/45 p-5 md:p-6 overflow-hidden">
+          <div className="flex justify-between gap-4">
+            <div className="flex-1 space-y-3">
+              <div className="skeleton h-4 rounded-full w-28" />
+              <div className="skeleton h-6 rounded-lg w-4/5" />
+              <div className="skeleton h-3 rounded-full w-full" />
+              <div className="skeleton h-3 rounded-full w-3/4" />
+            </div>
+            <div className="skeleton w-9 h-9 rounded-full shrink-0" />
+          </div>
+          <div className="mt-4 skeleton h-14 rounded-xl" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function FinderApp() {
   const { t, locale } = useLanguage();
   const [mode, setMode] = useState("guided");
@@ -51,39 +76,35 @@ export default function FinderApp() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 pb-16">
-      <div className="flex justify-center gap-2 mb-6">
+      <div className="finder-mode-switch mx-auto mb-7">
         <button
           type="button"
           onClick={() => setMode("guided")}
-          className={`px-4 py-2 rounded-full text-sm font-body font-semibold border transition-colors ${
-            mode === "guided"
-              ? "bg-ledger text-white border-ledger"
-              : "bg-white/60 text-ink border-borderc hover:border-ledger"
-          }`}
+          className={`finder-mode-button ${mode === "guided" ? "is-active" : ""}`}
         >
           {t("finder_mode_guided")}
         </button>
         <button
           type="button"
           onClick={() => setMode("freetext")}
-          className={`px-4 py-2 rounded-full text-sm font-body font-semibold border transition-colors ${
-            mode === "freetext"
-              ? "bg-ledger text-white border-ledger"
-              : "bg-white/60 text-ink border-borderc hover:border-ledger"
-          }`}
+          className={`finder-mode-button ${mode === "freetext" ? "is-active" : ""}`}
         >
           {t("finder_mode_freetext")}
         </button>
       </div>
 
-      {mode === "guided" ? (
-        <GuidedIntake onSubmit={handleGuidedSubmit} loading={loading} />
-      ) : (
-        <FreeTextIntake onSubmit={handleFreeTextSubmit} loading={loading} />
-      )}
+      <div key={mode} className="finder-panel-enter">
+        {mode === "guided" ? (
+          <GuidedIntake onSubmit={handleGuidedSubmit} loading={loading} />
+        ) : (
+          <FreeTextIntake onSubmit={handleFreeTextSubmit} loading={loading} />
+        )}
+      </div>
+
+      {loading && <ResultsSkeleton />}
 
       {error && (
-        <p className="mt-6 text-red-700 bg-red-50 border border-red-200 rounded-lg p-4 font-body">
+        <p className="mt-6 text-red-700 bg-red-50 border border-red-200 rounded-xl p-4 font-body animate-fadeIn">
           {error}
         </p>
       )}
@@ -91,13 +112,13 @@ export default function FinderApp() {
       {result && (
         <div className="mt-10 animate-fadeIn">
           {result.message && (
-            <p className="text-ink/80 font-body bg-white/60 border border-borderc rounded-lg p-4">
+            <p className="text-ink/80 font-body bg-white/60 border border-borderc rounded-xl p-4">
               {result.message}
             </p>
           )}
 
           {result.explanation && (
-            <div className="bg-saffron/10 border border-saffron/30 rounded-lg p-5 font-body text-ink whitespace-pre-line">
+            <div className="bg-saffron/10 border border-saffron/30 rounded-xl p-5 font-body text-ink whitespace-pre-line">
               {result.explanation}
             </div>
           )}
@@ -114,7 +135,7 @@ export default function FinderApp() {
                 </button>
               </div>
 
-              <div className="mt-2 grid gap-4">
+              <div className="scheme-grid mt-2 grid gap-4">
                 {result.matches.map((scheme) => (
                   <SchemeCard key={scheme.id} scheme={scheme} checks={scheme._checks} />
                 ))}
