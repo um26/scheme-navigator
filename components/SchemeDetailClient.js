@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import BookmarkButton from "./BookmarkButton";
 import RichText from "./RichText";
@@ -22,9 +23,7 @@ function RailLink({ href, children, primary = false }) {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className={primary
-        ? "detail-rail-primary"
-        : "detail-rail-secondary"}
+      className={primary ? "detail-rail-primary" : "detail-rail-secondary"}
     >
       {children}
     </a>
@@ -33,6 +32,7 @@ function RailLink({ href, children, primary = false }) {
 
 export default function SchemeDetailClient({ scheme }) {
   const { t, locale, localizeSchemeContent, translationLoading } = useLanguage();
+  const [shared, setShared] = useState(false);
   const displayScheme = localizeSchemeContent(scheme);
   const elig = scheme.eligibility || {};
 
@@ -47,6 +47,19 @@ export default function SchemeDetailClient({ scheme }) {
       : elig.gender === "male"
       ? t("guided_gender_male")
       : t("guided_gender_female");
+
+  async function shareScheme() {
+    const url = window.location.href;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: displayScheme.name, text: displayScheme.name, url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        setShared(true);
+        window.setTimeout(() => setShared(false), 1600);
+      }
+    } catch {}
+  }
 
   return (
     <div
@@ -147,6 +160,9 @@ export default function SchemeDetailClient({ scheme }) {
           <div className="py-4 space-y-3">
             <RailLink href={scheme.applyUrl} primary>{t("scheme_apply_now")}</RailLink>
             <RailLink href={scheme.officialUrl}>{t("scheme_official_page")}</RailLink>
+            <button type="button" onClick={shareScheme} className="detail-rail-secondary">
+              {shared ? "Copied ✓" : `↗ ${t("share_button_share")}`}
+            </button>
           </div>
 
           <div className="pt-4 border-t border-borderc/60 space-y-3">
