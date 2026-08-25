@@ -28,6 +28,24 @@ function OptionRow({ options, value, onChange }) {
   );
 }
 
+function ExploreSkeleton({ label }) {
+  return (
+    <div className="mt-8 space-y-4 animate-fadeIn">
+      <div className="flex items-center gap-2 text-xs uppercase tracking-[0.14em] text-muted font-body">
+        <span className="loading-spark">✦</span>{label}
+      </div>
+      <div className="grid md:grid-cols-2 gap-4 rounded-2xl border border-borderc bg-white/45 p-6">
+        {[0,1,2,3,4,5].map((i) => <div key={i} className="skeleton h-16 rounded-xl" />)}
+      </div>
+      <div className="skeleton h-28 rounded-2xl" />
+      <div className="grid md:grid-cols-2 gap-4">
+        <div className="skeleton h-56 rounded-2xl" />
+        <div className="skeleton h-56 rounded-2xl" />
+      </div>
+    </div>
+  );
+}
+
 export default function ExplorePage() {
   const { t, locale } = useLanguage();
   const [schemes, setSchemes] = useState(null);
@@ -73,152 +91,104 @@ export default function ExplorePage() {
     return points;
   }, [schemes, income, gender, category, state, isBPL, hasDisability]);
 
+  const tickStyle = { fontSize: 11, fill: "rgb(var(--c-muted))" };
+
   return (
-    <div className="max-w-4xl mx-auto px-4 py-10">
-      <h1 className="font-display text-3xl text-ledger">{t("explore_title")}</h1>
+    <div className="max-w-4xl mx-auto px-4 py-10 page-enter">
+      <div className="section-kicker">LIVE RULE ENGINE</div>
+      <h1 className="mt-2 font-display text-3xl md:text-4xl text-ledger">{t("explore_title")}</h1>
       <p className="mt-2 text-ink/70 font-body max-w-2xl">
         {t("explore_subtitle", { n: schemes ? schemes.length.toLocaleString("en-IN") : "…" })}
       </p>
 
       {!schemes ? (
-        <p className="mt-8 text-muted font-body">{t("explore_loading")}</p>
+        <ExploreSkeleton label={t("explore_loading")} />
       ) : (
         <>
-          <div className="mt-8 bg-white/60 border border-borderc rounded-lg p-6 grid gap-6 md:grid-cols-2">
+          <div className="mt-8 bg-white/60 border border-borderc rounded-2xl p-6 grid gap-6 md:grid-cols-2 shadow-sm">
             <div>
               <label className="flex justify-between font-body text-ledger font-semibold mb-2">
                 <span>{t("explore_age")}</span>
                 <span className="text-bottle">{age}</span>
               </label>
-              <input
-                type="range"
-                min="0"
-                max="90"
-                value={age}
-                onChange={(e) => setAge(Number(e.target.value))}
-                className="w-full accent-bottle"
-              />
+              <input type="range" min="0" max="90" value={age} onChange={(e) => setAge(Number(e.target.value))} className="w-full accent-bottle" />
             </div>
             <div>
               <label className="flex justify-between font-body text-ledger font-semibold mb-2">
                 <span>{t("explore_income")}</span>
                 <span className="text-bottle">₹{income.toLocaleString("en-IN")}</span>
               </label>
-              <input
-                type="range"
-                min="0"
-                max="1500000"
-                step="10000"
-                value={income}
-                onChange={(e) => setIncome(Number(e.target.value))}
-                className="w-full accent-bottle"
-              />
+              <input type="range" min="0" max="1500000" step="10000" value={income} onChange={(e) => setIncome(Number(e.target.value))} className="w-full accent-bottle" />
             </div>
 
             <div>
               <p className="font-body text-ledger font-semibold mb-2 text-sm">{t("explore_gender")}</p>
-              <OptionRow
-                value={gender}
-                onChange={setGender}
-                options={[
-                  { label: t("browse_any"), value: null },
-                  { label: t("guided_gender_male"), value: "male" },
-                  { label: t("guided_gender_female"), value: "female" },
-                ]}
-              />
+              <OptionRow value={gender} onChange={setGender} options={[
+                { label: t("browse_any"), value: null },
+                { label: t("guided_gender_male"), value: "male" },
+                { label: t("guided_gender_female"), value: "female" },
+              ]} />
             </div>
             <div>
               <p className="font-body text-ledger font-semibold mb-2 text-sm">{t("explore_category")}</p>
-              <OptionRow
-                value={category}
-                onChange={setCategory}
-                options={[
-                  { label: t("browse_any"), value: null },
-                  { label: t("guided_category_general"), value: "General" },
-                  { label: "SC", value: "SC" },
-                  { label: "ST", value: "ST" },
-                  { label: "OBC", value: "OBC" },
-                  { label: "EWS", value: "EWS" },
-                ]}
-              />
+              <OptionRow value={category} onChange={setCategory} options={[
+                { label: t("browse_any"), value: null },
+                { label: t("guided_category_general"), value: "General" },
+                { label: "SC", value: "SC" }, { label: "ST", value: "ST" }, { label: "OBC", value: "OBC" }, { label: "EWS", value: "EWS" },
+              ]} />
             </div>
 
             <div>
               <p className="font-body text-ledger font-semibold mb-2 text-sm">{t("explore_bpl")}</p>
-              <OptionRow
-                value={isBPL}
-                onChange={setIsBPL}
-                options={[
-                  { label: t("explore_unspecified"), value: null },
-                  { label: t("guided_yes"), value: true },
-                  { label: t("guided_no"), value: false },
-                ]}
-              />
+              <OptionRow value={isBPL} onChange={setIsBPL} options={[
+                { label: t("explore_unspecified"), value: null }, { label: t("guided_yes"), value: true }, { label: t("guided_no"), value: false },
+              ]} />
             </div>
             <div>
               <p className="font-body text-ledger font-semibold mb-2 text-sm">{t("explore_disability")}</p>
-              <OptionRow
-                value={hasDisability}
-                onChange={setHasDisability}
-                options={[
-                  { label: t("explore_unspecified"), value: null },
-                  { label: t("guided_yes"), value: true },
-                  { label: t("guided_no"), value: false },
-                ]}
-              />
+              <OptionRow value={hasDisability} onChange={setHasDisability} options={[
+                { label: t("explore_unspecified"), value: null }, { label: t("guided_yes"), value: true }, { label: t("guided_no"), value: false },
+              ]} />
             </div>
 
             <div className="md:col-span-2">
               <p className="font-body text-ledger font-semibold mb-2 text-sm">{t("explore_state")}</p>
-              <select
-                value={state || ""}
-                onChange={(e) => setState(e.target.value || null)}
-                className="w-full max-w-sm rounded-lg border border-borderc bg-white p-2.5 font-body text-sm focus:outline-none focus:ring-2 focus:ring-saffron"
-              >
+              <select value={state || ""} onChange={(e) => setState(e.target.value || null)} className="w-full max-w-sm rounded-xl border border-borderc bg-white p-2.5 font-body text-sm focus:outline-none focus:ring-2 focus:ring-saffron">
                 <option value="">{t("explore_state_any")}</option>
-                {INDIAN_STATES.map((s) => (
-                  <option key={s} value={s}>{localizeState(locale, s)}</option>
-                ))}
+                {INDIAN_STATES.map((s) => <option key={s} value={s}>{localizeState(locale, s)}</option>)}
               </select>
             </div>
           </div>
 
-          <div className="mt-6 bg-saffron/10 border border-saffron/30 rounded-lg p-6 text-center">
+          <div className="mt-6 bg-saffron/10 border border-saffron/30 rounded-2xl p-6 text-center shadow-sm">
             <p className="text-xs uppercase tracking-wide text-muted font-body">{t("explore_eligible_for")}</p>
-            <p className="font-display text-5xl text-saffron-dark mt-1">{eligibleCount}</p>
+            <p className="font-display text-5xl text-saffron-dark mt-1 tabular-nums">{eligibleCount.toLocaleString("en-IN")}</p>
             <p className="text-xs text-muted font-body mt-1">{t("explore_out_of", { n: schemes.length.toLocaleString("en-IN") })}</p>
           </div>
 
           <div className="mt-8 grid md:grid-cols-2 gap-6">
-            <div className="bg-white/60 border border-borderc rounded-lg p-4">
+            <div className="bg-white/60 border border-borderc rounded-2xl p-4 shadow-sm">
               <p className="font-body font-semibold text-ledger text-sm mb-2">{t("explore_chart_income")}</p>
               <ResponsiveContainer width="100%" height={200}>
                 <LineChart data={incomeSweep}>
-                  <CartesianGrid stroke="#D8CBA8" strokeDasharray="3 3" />
-                  <XAxis
-                    dataKey="income"
-                    tickFormatter={(v) => `₹${(v / 100000).toFixed(0)}L`}
-                    tick={{ fontSize: 11, fill: "#7A6F5D" }}
-                  />
-                  <YAxis tick={{ fontSize: 11, fill: "#7A6F5D" }} />
-                  <Tooltip
-                    formatter={(v) => [v, t("browse_scheme_count")]}
-                    labelFormatter={(v) => `₹${v.toLocaleString("en-IN")}`}
-                  />
-                  <Line type="monotone" dataKey="count" stroke="#C46F14" strokeWidth={2} dot={false} />
+                  <CartesianGrid stroke="rgb(var(--c-borderc))" strokeOpacity={0.55} strokeDasharray="3 3" />
+                  <XAxis dataKey="income" tickFormatter={(v) => `₹${(v / 100000).toFixed(0)}L`} tick={tickStyle} />
+                  <YAxis tick={tickStyle} />
+                  <Tooltip formatter={(v) => [v, t("browse_scheme_count")]} labelFormatter={(v) => `₹${v.toLocaleString("en-IN")}`} />
+                  <Line type="monotone" dataKey="count" stroke="rgb(var(--c-saffron-dark))" strokeWidth={2.4} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
 
-            <div className="bg-white/60 border border-borderc rounded-lg p-4">
+            <div className="bg-white/60 border border-borderc rounded-2xl p-4 shadow-sm">
               <p className="font-body font-semibold text-ledger text-sm mb-2">{t("explore_chart_age")}</p>
               <ResponsiveContainer width="100%" height={200}>
                 <LineChart data={ageSweep}>
-                  <CartesianGrid stroke="#D8CBA8" strokeDasharray="3 3" />
-                  <XAxis dataKey="age" tick={{ fontSize: 11, fill: "#7A6F5D" }} />
-                  <YAxis tick={{ fontSize: 11, fill: "#7A6F5D" }} />
+                  <CartesianGrid stroke="rgb(var(--c-borderc))" strokeOpacity={0.55} strokeDasharray="3 3" />
+                  <XAxis dataKey="age" tick={tickStyle} />
+                  <YAxis tick={tickStyle} />
                   <Tooltip formatter={(v) => [v, t("browse_scheme_count")]} labelFormatter={(v) => `${v}`} />
-                  <Line type="monotone" dataKey="count" stroke="#1F4B3F" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="count" stroke="rgb(var(--c-bottle))" strokeWidth={2.4} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
