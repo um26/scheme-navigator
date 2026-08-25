@@ -52,7 +52,10 @@ export default function BrowsePage({ searchParams }) {
     filtered = filtered.filter(
       (s) =>
         s.name?.toLowerCase().includes(qLower) ||
-        stripMarkdown(s.description || "").toLowerCase().includes(qLower)
+        stripMarkdown(s.description || "").toLowerCase().includes(qLower) ||
+        s.ministry?.toLowerCase().includes(qLower) ||
+        s.tags?.toLowerCase().includes(qLower) ||
+        s.state?.toLowerCase().includes(qLower)
     );
   }
 
@@ -68,8 +71,9 @@ export default function BrowsePage({ searchParams }) {
       : localizeState(locale, region);
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-10">
-      <h1 className="font-display text-3xl text-ledger">{t("browse_title")}</h1>
+    <div className="max-w-4xl mx-auto px-4 py-10 page-enter">
+      <div className="section-kicker">DISCOVER · FILTER · COMPARE</div>
+      <h1 className="mt-2 font-display text-3xl md:text-4xl text-ledger">{t("browse_title")}</h1>
       <p className="mt-2 text-ink/70 font-body">
         {t("browse_subtitle_full", { n: schemes.length })}
       </p>
@@ -84,18 +88,18 @@ export default function BrowsePage({ searchParams }) {
           name="q"
           defaultValue={q}
           placeholder={t("browse_search_placeholder")}
-          className="flex-1 rounded-lg border border-borderc bg-white/70 p-2.5 font-body text-sm focus:outline-none focus:ring-2 focus:ring-saffron"
+          className="flex-1 rounded-xl border border-borderc bg-white/70 p-2.5 font-body text-sm focus:outline-none focus:ring-2 focus:ring-saffron"
         />
         <button
           type="submit"
-          className="px-4 py-2 rounded-lg bg-bottle text-white font-body text-sm font-semibold hover:bg-bottle-light transition-colors"
+          className="px-4 py-2 rounded-xl bg-bottle text-white font-body text-sm font-semibold hover:bg-bottle-light transition-colors"
         >
           {t("browse_search_button")}
         </button>
         {q && (
           <Link
             href={buildHref({ ...baseParams, q: "", page: 1 })}
-            className="px-4 py-2 rounded-lg border border-borderc bg-white/60 font-body text-sm hover:bg-white"
+            className="px-4 py-2 rounded-xl border border-borderc bg-white/60 font-body text-sm hover:bg-white"
           >
             {t("browse_clear")}
           </Link>
@@ -175,12 +179,12 @@ export default function BrowsePage({ searchParams }) {
           : t("browse_summary", { n: filtered.length, region: regionLabel })}
       </p>
 
-      <div className="mt-4 grid gap-4">
+      <div className="scheme-grid mt-4 grid gap-4">
         {pageItems.map((scheme) => (
           <SchemeCard key={scheme.id} scheme={scheme} />
         ))}
         {pageItems.length === 0 && (
-          <div className="bg-white/60 border border-borderc rounded-lg p-8 text-center font-body text-ink/70">
+          <div className="bg-white/60 border border-borderc rounded-xl p-8 text-center font-body text-ink/70">
             {t("browse_no_results")}
           </div>
         )}
@@ -190,7 +194,7 @@ export default function BrowsePage({ searchParams }) {
         {page > 1 && (
           <Link
             href={buildHref({ ...baseParams, page: page - 1 })}
-            className="px-4 py-2 rounded-lg border border-borderc bg-white/60 hover:bg-white"
+            className="px-4 py-2 rounded-xl border border-borderc bg-white/60 hover:bg-white"
           >
             {t("browse_previous")}
           </Link>
@@ -199,7 +203,7 @@ export default function BrowsePage({ searchParams }) {
         {page < totalPages && (
           <Link
             href={buildHref({ ...baseParams, page: page + 1 })}
-            className="px-4 py-2 rounded-lg border border-borderc bg-white/60 hover:bg-white"
+            className="px-4 py-2 rounded-xl border border-borderc bg-white/60 hover:bg-white"
           >
             {t("browse_next")}
           </Link>
