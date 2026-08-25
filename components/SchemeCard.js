@@ -36,6 +36,10 @@ export default function SchemeCard({ scheme, checks, showBookmark = true }) {
     el.style.setProperty("--my", "50%");
   }
 
+  function launch() {
+    cardRef.current?.classList.add("is-opening");
+  }
+
   return (
     <article
       ref={cardRef}
@@ -59,7 +63,7 @@ export default function SchemeCard({ scheme, checks, showBookmark = true }) {
               </span>
             )}
           </div>
-          <Link href={`/scheme/${scheme.id}`} className="block">
+          <Link href={`/scheme/${scheme.id}`} onClick={launch} className="block">
             <h3 className="font-display text-xl md:text-[1.35rem] leading-snug text-ledger group-hover:text-saffron-dark transition-colors">
               {displayScheme.name}
             </h3>
@@ -86,7 +90,7 @@ export default function SchemeCard({ scheme, checks, showBookmark = true }) {
       <div className="relative mt-4 flex items-end justify-between gap-3">
         <div className="min-w-0">
           {checks && <EligibilityMeter checks={checks} />}
-          <Link href={`/scheme/${scheme.id}`} className="mt-3 inline-flex items-center gap-1 text-xs font-body font-semibold text-saffron-dark hover:gap-2 transition-all">
+          <Link href={`/scheme/${scheme.id}`} onClick={launch} className="mt-3 inline-flex items-center gap-1 text-xs font-body font-semibold text-saffron-dark hover:gap-2 transition-all">
             {t("card_view_details")}
           </Link>
         </div>
