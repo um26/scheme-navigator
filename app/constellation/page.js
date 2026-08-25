@@ -5,7 +5,11 @@ import { useRouter } from "next/navigation";
 import { useLanguage } from "../../lib/i18n/LanguageContext";
 import { localizeState } from "../../lib/i18n/entities";
 
-const LEVEL_COLORS = { Central: "#C46F14", State: "#1E3A5F" };
+function cssColor(variable, fallback) {
+  if (typeof window === "undefined") return fallback;
+  const value = getComputedStyle(document.documentElement).getPropertyValue(variable).trim();
+  return value ? `rgb(${value})` : fallback;
+}
 
 export default function ConstellationPage() {
   const { t, locale, localizeSchemeContent } = useLanguage();
@@ -37,18 +41,21 @@ export default function ConstellationPage() {
     const ctx = canvas.getContext("2d");
     const w = canvas.width;
     const h = canvas.height;
+    const central = cssColor("--c-saffron-dark", "#C46F14");
+    const state = cssColor("--c-ledger", "#1E3A5F");
+    const accent = cssColor("--c-saffron", "#E38B29");
     ctx.clearRect(0, 0, w, h);
     for (const p of data.points) {
       const [px, py] = project(p.x, p.y, w, h);
       const isHovered = hovered?.id === p.id;
       ctx.beginPath();
-      ctx.arc(px, py, isHovered ? 5 : 2.5, 0, Math.PI * 2);
-      ctx.fillStyle = LEVEL_COLORS[p.level] || "#7A6F5D";
-      ctx.globalAlpha = isHovered ? 1 : 0.55;
+      ctx.arc(px, py, isHovered ? 5.5 : 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = p.level === "Central" ? central : state;
+      ctx.globalAlpha = isHovered ? 1 : p.level === "Central" ? 0.62 : 0.42;
       ctx.fill();
       if (isHovered) {
         ctx.globalAlpha = 1;
-        ctx.strokeStyle = "#E38B29";
+        ctx.strokeStyle = accent;
         ctx.lineWidth = 2;
         ctx.stroke();
       }
@@ -69,7 +76,12 @@ export default function ConstellationPage() {
     }
     handleResize();
     window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    const observer = new MutationObserver(draw);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      observer.disconnect();
+    };
   }, [draw]);
 
   function findNearestPoint(mx, my) {
@@ -112,25 +124,36 @@ export default function ConstellationPage() {
   const displayHovered = hovered ? localizeSchemeContent(hovered) : null;
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-10">
-      <h1 className="font-display text-3xl text-ledger text-center">{t("constellation_title")}</h1>
-      <p className="mt-2 text-center text-ink/70 font-body max-w-2xl mx-auto">
-        {t("constellation_subtitle")}
-        {data?.explainedVariance && <span className="block text-xs text-muted mt-1">{t("constellation_variance", { a: (data.explainedVariance[0] * 100).toFixed(0), b: (data.explainedVariance[1] * 100).toFixed(0) })}</span>}
-      </p>
+    <div className="max-w-5xl mx-auto px-4 py-10 page-enter">
+      <div className="text-center max-w-2xl mx-auto">
+        <div className="section-kicker">4,693 POINTS · ONE ELIGIBILITY SPACE</div>
+        <h1 className="mt-2 font-display text-3xl md:text-5xl text-ledger">{t("constellation_title")}</h1>
+        <p className="mt-3 text-center text-ink/70 font-body">
+          {t("constellation_subtitle")}
+          {data?.explainedVariance && <span className="block text-xs text-muted mt-2">{t("constellation_variance", { a: (data.explainedVariance[0] * 100).toFixed(0), b: (data.explainedVariance[1] * 100).toFixed(0) })}</span>}
+        </p>
+      </div>
 
-      <div className="mt-4 flex justify-center gap-4 text-xs font-body flex-wrap">
-        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: LEVEL_COLORS.Central }} />{t("browse_central")}</span>
-        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: LEVEL_COLORS.State }} />{t("browse_state")}</span>
+      <div className="mt-5 flex justify-center gap-4 text-xs font-body flex-wrap">
+        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full inline-block bg-saffron-dark" />{t("browse_central")}</span>
+        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full inline-block bg-ledger" />{t("browse_state")}</span>
         <span className="text-muted">{t("constellation_legend_hint")}</span>
       </div>
 
-      <div ref={containerRef} className="mt-4 border border-borderc rounded-lg bg-white/50 overflow-hidden relative">
-        {!data ? <p className="text-center py-20 text-muted font-body">{t("constellation_loading")}</p> : <canvas ref={canvasRef} height={520} className="w-full cursor-grab active:cursor-grabbing" onMouseMove={handleMouseMove} onMouseDown={handleMouseDown} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp} onClick={handleClick} onWheel={handleWheel} />}
+      <div ref={containerRef} className="mt-5 border border-borderc rounded-[1.5rem] bg-white/50 overflow-hidden relative shadow-sm">
+        <div className="map-grid" aria-hidden="true" />
+        {!data ? (
+          <div className="p-6 space-y-3">
+            <div className="skeleton h-[430px] rounded-2xl" />
+            <div className="flex items-center justify-center gap-2 text-xs text-muted font-body"><span className="loading-spark">✦</span>{t("constellation_loading")}</div>
+          </div>
+        ) : (
+          <canvas ref={canvasRef} height={520} className="relative z-[1] w-full cursor-grab active:cursor-grabbing" onMouseMove={handleMouseMove} onMouseDown={handleMouseDown} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp} onClick={handleClick} onWheel={handleWheel} />
+        )}
         {hovered && (
-          <div className="absolute top-3 start-3 max-w-xs bg-ledger text-white text-xs font-body px-3 py-2 rounded-lg shadow-lg pointer-events-none">
-            <p className="font-semibold">{displayHovered?.name || hovered.name}</p>
-            <p className="text-white/70 mt-0.5">{hovered.level === "Central" ? t("browse_central") : t("browse_state")}{hovered.state ? ` · ${localizeState(locale, hovered.state)}` : ""}</p>
+          <div className="absolute z-[3] top-3 start-3 max-w-xs bg-khadi/90 border border-borderc text-xs font-body px-3 py-2 rounded-xl shadow-lg pointer-events-none backdrop-blur-md">
+            <p className="font-semibold text-ledger">{displayHovered?.name || hovered.name}</p>
+            <p className="text-muted mt-0.5">{hovered.level === "Central" ? t("browse_central") : t("browse_state")}{hovered.state ? ` · ${localizeState(locale, hovered.state)}` : ""}</p>
           </div>
         )}
       </div>
