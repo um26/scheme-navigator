@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import SavedCount from "./SavedCount";
@@ -13,6 +13,8 @@ export default function Header() {
   const { t } = useLanguage();
   const pathname = usePathname();
   const [searchOpen, setSearchOpen] = useState(false);
+  const [indicator, setIndicator] = useState({ left: 0, top: 0, width: 0, visible: false });
+  const navRef = useRef(null);
   const closeSearch = useCallback(() => setSearchOpen(false), []);
 
   const LINKS = [
@@ -41,6 +43,29 @@ export default function Header() {
   }, []);
 
   const isActive = (href) => href === "/" ? pathname === "/" : pathname?.startsWith(href);
+  const activeHref = [ ...LINKS.map((l) => l.href), "/saved" ].find((href) => isActive(href));
+
+  useLayoutEffect(() => {
+    const nav = navRef.current;
+    if (!nav || !activeHref) return;
+    let frame;
+    const measure = () => {
+      const item = nav.querySelector(`[data-nav="${activeHref}"]`);
+      if (!item) return;
+      setIndicator({
+        left: item.offsetLeft + item.offsetWidth * 0.08,
+        top: item.offsetTop + item.offsetHeight - 2,
+        width: item.offsetWidth * 0.84,
+        visible: true,
+      });
+    };
+    frame = requestAnimationFrame(measure);
+    window.addEventListener("resize", measure);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("resize", measure);
+    };
+  }, [activeHref, t]);
 
   return (
     <>
@@ -51,17 +76,23 @@ export default function Header() {
             Scheme Navigator
           </Link>
           <div className="flex items-center gap-3 flex-wrap">
-            <nav className="flex flex-wrap gap-x-5 gap-y-1 font-body text-ledger items-center text-sm">
+            <nav ref={navRef} className="relative flex flex-wrap gap-x-5 gap-y-1 font-body text-ledger items-center text-sm">
+              <span
+                aria-hidden="true"
+                className="absolute h-0.5 rounded-full bg-saffron-dark pointer-events-none transition-all duration-300 ease-out"
+                style={{ left: indicator.left, top: indicator.top, width: indicator.width, opacity: indicator.visible ? 1 : 0 }}
+              />
               {LINKS.map((l) => (
                 <Link
                   key={l.href}
+                  data-nav={l.href}
                   href={l.href}
-                  className={`nav-link ${isActive(l.href) ? "nav-link-active" : ""}`}
+                  className={`nav-link ${isActive(l.href) ? "text-saffron-dark" : ""}`}
                 >
                   {l.label}
                 </Link>
               ))}
-              <Link href="/saved" className={`nav-link flex items-center ${isActive("/saved") ? "nav-link-active" : ""}`}>
+              <Link data-nav="/saved" href="/saved" className={`nav-link flex items-center ${isActive("/saved") ? "text-saffron-dark" : ""}`}>
                 {t("nav_saved")}
                 <SavedCount />
               </Link>
