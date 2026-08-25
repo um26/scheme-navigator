@@ -147,16 +147,15 @@ async function main() {
   writeFileSync(OUT_FILE, JSON.stringify(schemes));
   console.log(`[build-schemes] wrote ${schemes.length} schemes to ${OUT_FILE}`);
 
-  // Compact client index for What-If, global command search, and map counts. It
-  // intentionally excludes all long body text so it stays cheap to fetch.
+  // Lite export (id/level/state/eligibility only, no long text) for the client-side
+  // "what-if" explorer — lets it fetch+filter all 4,693 schemes in the browser
+  // without pulling the full description/benefits text for every scheme.
   const LITE_OUT_FILE = path.join(OUT_DIR, "schemes-lite.json");
   const lite = schemes.map((s) => ({
     id: s.id,
     name: s.name,
     level: s.level,
     state: s.state,
-    ministry: s.ministry,
-    tags: s.tags,
     eligibility: s.eligibility,
   }));
   writeFileSync(LITE_OUT_FILE, JSON.stringify(lite));
