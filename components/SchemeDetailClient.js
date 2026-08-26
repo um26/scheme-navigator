@@ -52,7 +52,7 @@ export default function SchemeDetailClient({ scheme, returnTo = null }) {
       aria-busy={translationLoading ? "true" : "false"}
     >
       <button type="button" onClick={backToBrowse} className="text-sm font-body text-bottle hover:underline">
-        ← {t("scheme_back_to_browse")}
+        {t("scheme_back_to_browse")}
       </button>
 
       <div className="mt-4 flex items-start justify-between gap-4">
