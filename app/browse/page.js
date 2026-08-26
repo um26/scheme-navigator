@@ -1,5 +1,6 @@
 import schemes from "../../public/data/schemes.json";
 import SchemeCard from "../../components/SchemeCard";
+import BrowseRegionPicker from "../../components/BrowseRegionPicker";
 import Link from "next/link";
 import { stripMarkdown } from "../../lib/markdownLite";
 import { getServerLocale } from "../../lib/i18n/getServerLocale";
@@ -10,10 +11,8 @@ const PAGE_SIZE = 20;
 const CATEGORIES = ["SC", "ST", "OBC", "EWS"];
 
 function getRegions() {
-  const regions = new Set(["Central"]);
-  for (const s of schemes) {
-    if (s.state) regions.add(s.state);
-  }
+  const regions = new Set();
+  for (const s of schemes) if (s.state) regions.add(s.state);
   return Array.from(regions).sort();
 }
 
@@ -38,172 +37,76 @@ export default function BrowsePage({ searchParams }) {
   const page = Math.max(1, parseInt(searchParams?.page || "1", 10) || 1);
 
   let filtered = schemes;
-  if (region !== "All") {
-    filtered = region === "Central" ? filtered.filter((s) => s.level === "Central") : filtered.filter((s) => s.state === region);
-  }
-  if (category !== "All") {
-    filtered = filtered.filter((s) => s.eligibility?.categories?.includes(category));
-  }
-  if (gender !== "any") {
-    filtered = filtered.filter((s) => (s.eligibility?.gender || "any") === gender);
-  }
+  if (region !== "All") filtered = region === "Central" ? filtered.filter((s) => s.level === "Central") : filtered.filter((s) => s.state === region);
+  if (category !== "All") filtered = filtered.filter((s) => s.eligibility?.categories?.includes(category));
+  if (gender !== "any") filtered = filtered.filter((s) => (s.eligibility?.gender || "any") === gender);
   if (q) {
     const qLower = q.toLowerCase();
-    filtered = filtered.filter(
-      (s) =>
-        s.name?.toLowerCase().includes(qLower) ||
-        stripMarkdown(s.description || "").toLowerCase().includes(qLower)
-    );
+    filtered = filtered.filter((s) => s.name?.toLowerCase().includes(qLower) || stripMarkdown(s.description || "").toLowerCase().includes(qLower));
   }
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const safePage = Math.min(page, totalPages);
+  const pageItems = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
   const regions = getRegions();
   const baseParams = { region, q, category, gender };
-  const regionLabel =
-    region === "Central"
-      ? t("browse_central")
-      : region === "All"
-      ? t("browse_all")
-      : localizeState(locale, region);
+  const returnTo = buildHref({ ...baseParams, page: safePage });
+  const regionLabel = region === "Central" ? t("browse_central") : region === "All" ? t("browse_all") : localizeState(locale, region);
+  const regionOptions = [
+    { value: "All", label: t("browse_all") },
+    { value: "Central", label: t("browse_central") },
+    ...regions.map((value) => ({ value, label: localizeState(locale, value) })),
+  ];
+  const hasFilters = q || region !== "All" || category !== "All" || gender !== "any";
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-10">
       <h1 className="font-display text-3xl text-ledger">{t("browse_title")}</h1>
-      <p className="mt-2 text-ink/70 font-body">
-        {t("browse_subtitle_full", { n: schemes.length })}
-      </p>
+      <p className="mt-2 text-ink/70 font-body">{t("browse_subtitle_full", { n: schemes.length })}</p>
 
-      <form method="GET" action="/browse" className="mt-6 flex gap-2">
-        <input type="hidden" name="region" value={region} />
-        <input type="hidden" name="category" value={category} />
-        <input type="hidden" name="gender" value={gender} />
-        <input type="hidden" name="page" value="1" />
-        <input
-          type="text"
-          name="q"
-          defaultValue={q}
-          placeholder={t("browse_search_placeholder")}
-          className="flex-1 rounded-lg border border-borderc bg-white/70 p-2.5 font-body text-sm focus:outline-none focus:ring-2 focus:ring-saffron"
-        />
-        <button
-          type="submit"
-          className="px-4 py-2 rounded-lg bg-bottle text-white font-body text-sm font-semibold hover:bg-bottle-light transition-colors"
-        >
-          {t("browse_search_button")}
-        </button>
-        {q && (
-          <Link
-            href={buildHref({ ...baseParams, q: "", page: 1 })}
-            className="px-4 py-2 rounded-lg border border-borderc bg-white/60 font-body text-sm hover:bg-white"
-          >
-            {t("browse_clear")}
-          </Link>
-        )}
-      </form>
+      <div className="mt-6 rounded-xl border border-borderc bg-white/50 p-3 shadow-sm">
+        <form method="GET" action="/browse" className="flex flex-col gap-2 sm:flex-row">
+          <input type="hidden" name="region" value={region} />
+          <input type="hidden" name="category" value={category} />
+          <input type="hidden" name="gender" value={gender} />
+          <input type="hidden" name="page" value="1" />
+          <input type="search" name="q" defaultValue={q} placeholder={t("browse_search_placeholder")} className="min-w-0 flex-1 rounded-lg border border-borderc bg-white/70 p-2.5 font-body text-sm text-ink transition-colors focus:outline-none focus:ring-2 focus:ring-saffron" />
+          <button type="submit" className="interactive-surface rounded-lg bg-bottle px-4 py-2 text-sm font-body font-semibold text-white hover:bg-bottle-light">{t("browse_search_button")}</button>
+        </form>
 
-      <div className="mt-4 flex flex-wrap gap-2">
-        <Link
-          href={buildHref({ ...baseParams, region: "All", page: 1 })}
-          className={`px-3 py-1.5 rounded-full text-sm font-body border transition-colors ${
-            region === "All" ? "bg-bottle text-white border-bottle" : "bg-white/60 text-ink border-borderc hover:bg-white"
-          }`}
-        >
-          {t("browse_all")}
-        </Link>
-        <Link
-          href={buildHref({ ...baseParams, region: "Central", page: 1 })}
-          className={`px-3 py-1.5 rounded-full text-sm font-body border transition-colors ${
-            region === "Central" ? "bg-bottle text-white border-bottle" : "bg-white/60 text-ink border-borderc hover:bg-white"
-          }`}
-        >
-          {t("browse_central")}
-        </Link>
-        {regions
-          .filter((r) => r !== "Central")
-          .map((r) => (
-            <Link
-              key={r}
-              href={buildHref({ ...baseParams, region: r, page: 1 })}
-              className={`px-3 py-1.5 rounded-full text-sm font-body border transition-colors ${
-                region === r ? "bg-bottle text-white border-bottle" : "bg-white/60 text-ink border-borderc hover:bg-white"
-              }`}
-            >
-              {localizeState(locale, r)}
+        <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-borderc/60 pt-3">
+          <BrowseRegionPicker options={regionOptions} currentRegion={region} currentLabel={regionLabel} baseParams={baseParams} />
+
+          <span className="ms-1 text-xs uppercase tracking-wide text-muted font-body">{t("browse_category_label")}</span>
+          <Link href={buildHref({ ...baseParams, category: "All", page: 1 })} className={`interactive-surface rounded-full border px-2.5 py-1 text-xs font-body ${category === "All" ? "border-saffron-dark bg-saffron-dark text-white" : "border-borderc bg-white/60 hover:bg-white"}`}>{t("browse_any")}</Link>
+          {CATEGORIES.map((c) => (
+            <Link key={c} href={buildHref({ ...baseParams, category: c, page: 1 })} className={`interactive-surface rounded-full border px-2.5 py-1 text-xs font-body ${category === c ? "border-saffron-dark bg-saffron-dark text-white" : "border-borderc bg-white/60 hover:bg-white"}`}>{c}</Link>
+          ))}
+
+          <span className="ms-1 text-xs uppercase tracking-wide text-muted font-body">{t("browse_gender_label")}</span>
+          {["any", "male", "female"].map((g) => (
+            <Link key={g} href={buildHref({ ...baseParams, gender: g, page: 1 })} className={`interactive-surface rounded-full border px-2.5 py-1 text-xs font-body ${gender === g ? "border-saffron-dark bg-saffron-dark text-white" : "border-borderc bg-white/60 hover:bg-white"}`}>
+              {g === "any" ? t("browse_any") : g === "male" ? t("guided_gender_male") : t("guided_gender_female")}
             </Link>
           ))}
-      </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <span className="text-xs text-muted font-body uppercase tracking-wide">{t("browse_category_label")}</span>
-        <Link
-          href={buildHref({ ...baseParams, category: "All", page: 1 })}
-          className={`px-2.5 py-1 rounded-full text-xs font-body border ${
-            category === "All" ? "bg-saffron-dark text-white border-saffron-dark" : "bg-white/60 border-borderc"
-          }`}
-        >
-          {t("browse_any")}
-        </Link>
-        {CATEGORIES.map((c) => (
-          <Link
-            key={c}
-            href={buildHref({ ...baseParams, category: c, page: 1 })}
-            className={`px-2.5 py-1 rounded-full text-xs font-body border ${
-              category === c ? "bg-saffron-dark text-white border-saffron-dark" : "bg-white/60 border-borderc"
-            }`}
-          >
-            {c}
-          </Link>
-        ))}
-        <span className="text-xs text-muted font-body uppercase tracking-wide ml-3">{t("browse_gender_label")}</span>
-        {["any", "male", "female"].map((g) => (
-          <Link
-            key={g}
-            href={buildHref({ ...baseParams, gender: g, page: 1 })}
-            className={`px-2.5 py-1 rounded-full text-xs font-body border capitalize ${
-              gender === g ? "bg-saffron-dark text-white border-saffron-dark" : "bg-white/60 border-borderc"
-            }`}
-          >
-            {g === "any" ? t("browse_any") : g === "male" ? t("guided_gender_male") : t("guided_gender_female")}
-          </Link>
-        ))}
+          {hasFilters && <Link href="/browse?page=1" className="ms-auto rounded-full px-3 py-1 text-xs font-body font-semibold text-saffron-dark hover:underline">{t("browse_clear")}</Link>}
+        </div>
       </div>
 
       <p className="mt-4 text-sm text-muted font-body">
-        {q
-          ? t("browse_summary_matching", { n: filtered.length, q, region: regionLabel })
-          : t("browse_summary", { n: filtered.length, region: regionLabel })}
+        {q ? t("browse_summary_matching", { n: filtered.length, q, region: regionLabel }) : t("browse_summary", { n: filtered.length, region: regionLabel })}
       </p>
 
       <div className="mt-4 grid gap-4">
-        {pageItems.map((scheme) => (
-          <SchemeCard key={scheme.id} scheme={scheme} />
-        ))}
-        {pageItems.length === 0 && (
-          <div className="bg-white/60 border border-borderc rounded-lg p-8 text-center font-body text-ink/70">
-            {t("browse_no_results")}
-          </div>
-        )}
+        {pageItems.map((scheme) => <SchemeCard key={scheme.id} scheme={scheme} returnTo={returnTo} />)}
+        {pageItems.length === 0 && <div className="rounded-xl border border-borderc bg-white/60 p-8 text-center font-body text-ink/70">{t("browse_no_results")}</div>}
       </div>
 
       <div className="mt-8 flex items-center justify-center gap-4 font-body">
-        {page > 1 && (
-          <Link
-            href={buildHref({ ...baseParams, page: page - 1 })}
-            className="px-4 py-2 rounded-lg border border-borderc bg-white/60 hover:bg-white"
-          >
-            {t("browse_previous")}
-          </Link>
-        )}
-        <span className="text-sm text-muted">{t("browse_page_of", { a: page, b: totalPages })}</span>
-        {page < totalPages && (
-          <Link
-            href={buildHref({ ...baseParams, page: page + 1 })}
-            className="px-4 py-2 rounded-lg border border-borderc bg-white/60 hover:bg-white"
-          >
-            {t("browse_next")}
-          </Link>
-        )}
+        {safePage > 1 && <Link href={buildHref({ ...baseParams, page: safePage - 1 })} className="interactive-surface rounded-lg border border-borderc bg-white/60 px-4 py-2 hover:bg-white">{t("browse_previous")}</Link>}
+        <span className="text-sm text-muted">{t("browse_page_of", { a: safePage, b: totalPages })}</span>
+        {safePage < totalPages && <Link href={buildHref({ ...baseParams, page: safePage + 1 })} className="interactive-surface rounded-lg border border-borderc bg-white/60 px-4 py-2 hover:bg-white">{t("browse_next")}</Link>}
       </div>
     </div>
   );

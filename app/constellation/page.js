@@ -1,11 +1,19 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "../../lib/i18n/LanguageContext";
 import { localizeState } from "../../lib/i18n/entities";
 
-const LEVEL_COLORS = { Central: "#C46F14", State: "#1E3A5F" };
+const DEFAULT_TRANSFORM = { scale: 1, offsetX: 0, offsetY: 0 };
+
+function themeColor(variable, fallback) {
+  if (typeof window === "undefined") return fallback;
+  const value = getComputedStyle(document.documentElement).getPropertyValue(variable).trim();
+  if (!value) return fallback;
+  return `rgb(${value.split(/\s+/).join(", ")})`;
+}
 
 export default function ConstellationPage() {
   const { t, locale, localizeSchemeContent } = useLanguage();
@@ -14,7 +22,8 @@ export default function ConstellationPage() {
   const router = useRouter();
   const [data, setData] = useState(null);
   const [hovered, setHovered] = useState(null);
-  const [transform, setTransform] = useState({ scale: 1, offsetX: 0, offsetY: 0 });
+  const [transform, setTransform] = useState(DEFAULT_TRANSFORM);
+  const [themeVersion, setThemeVersion] = useState(0);
   const dragRef = useRef(null);
 
   useEffect(() => {
@@ -22,6 +31,17 @@ export default function ConstellationPage() {
       .then((r) => r.json())
       .then(setData)
       .catch(() => setData({ points: [] }));
+  }, []);
+
+  useEffect(() => {
+    const onTheme = () => setThemeVersion((value) => value + 1);
+    window.addEventListener("sn-theme-change", onTheme);
+    const observer = new MutationObserver(onTheme);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => {
+      window.removeEventListener("sn-theme-change", onTheme);
+      observer.disconnect();
+    };
   }, []);
 
   const project = useCallback((x, y, w, h) => {
@@ -37,24 +57,29 @@ export default function ConstellationPage() {
     const ctx = canvas.getContext("2d");
     const w = canvas.width;
     const h = canvas.height;
+    const central = themeColor("--c-saffron-dark", "#C46F14");
+    const state = themeColor("--c-bottle", "#1F4B3F");
+    const muted = themeColor("--c-muted", "#7A6F5D");
+    const highlight = themeColor("--c-saffron", "#E38B29");
+
     ctx.clearRect(0, 0, w, h);
     for (const p of data.points) {
       const [px, py] = project(p.x, p.y, w, h);
       const isHovered = hovered?.id === p.id;
       ctx.beginPath();
       ctx.arc(px, py, isHovered ? 5 : 2.5, 0, Math.PI * 2);
-      ctx.fillStyle = LEVEL_COLORS[p.level] || "#7A6F5D";
-      ctx.globalAlpha = isHovered ? 1 : 0.55;
+      ctx.fillStyle = p.level === "Central" ? central : p.level === "State" ? state : muted;
+      ctx.globalAlpha = isHovered ? 1 : 0.58;
       ctx.fill();
       if (isHovered) {
         ctx.globalAlpha = 1;
-        ctx.strokeStyle = "#E38B29";
+        ctx.strokeStyle = highlight;
         ctx.lineWidth = 2;
         ctx.stroke();
       }
     }
     ctx.globalAlpha = 1;
-  }, [data, hovered, project]);
+  }, [data, hovered, project, themeVersion]);
 
   useEffect(() => { draw(); }, [draw]);
 
@@ -72,41 +97,74 @@ export default function ConstellationPage() {
     return () => window.removeEventListener("resize", handleResize);
   }, [draw]);
 
+  function pointerCoords(e) {
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    return [
+      (e.clientX - rect.left) * (canvas.width / rect.width),
+      (e.clientY - rect.top) * (canvas.height / rect.height),
+    ];
+  }
+
   function findNearestPoint(mx, my) {
-    if (!data) return null;
+    if (!data || !canvasRef.current) return null;
     const canvas = canvasRef.current;
     let closest = null;
-    let closestDist = 12;
+    let closestDist = 13;
     for (const p of data.points) {
       const [px, py] = project(p.x, p.y, canvas.width, canvas.height);
       const d = Math.hypot(px - mx, py - my);
-      if (d < closestDist) { closestDist = d; closest = p; }
+      if (d < closestDist) {
+        closestDist = d;
+        closest = p;
+      }
     }
     return closest;
   }
 
-  function handleMouseMove(e) {
-    const rect = canvasRef.current.getBoundingClientRect();
-    const mx = e.clientX - rect.left;
-    const my = e.clientY - rect.top;
+  function handlePointerMove(e) {
+    const [mx, my] = pointerCoords(e);
     if (dragRef.current) {
       const dx = mx - dragRef.current.startX;
       const dy = my - dragRef.current.startY;
-      setTransform((v) => ({ ...v, offsetX: dragRef.current.origOffsetX + dx, offsetY: dragRef.current.origOffsetY + dy }));
+      if (Math.hypot(dx, dy) > 4) dragRef.current.moved = true;
+      setTransform((value) => ({
+        ...value,
+        offsetX: dragRef.current.origOffsetX + dx,
+        offsetY: dragRef.current.origOffsetY + dy,
+      }));
       return;
     }
     setHovered(findNearestPoint(mx, my));
   }
 
-  function handleMouseDown(e) {
-    const rect = canvasRef.current.getBoundingClientRect();
-    dragRef.current = { startX: e.clientX - rect.left, startY: e.clientY - rect.top, origOffsetX: transform.offsetX, origOffsetY: transform.offsetY };
+  function handlePointerDown(e) {
+    const [mx, my] = pointerCoords(e);
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    setHovered(findNearestPoint(mx, my));
+    dragRef.current = {
+      startX: mx,
+      startY: my,
+      origOffsetX: transform.offsetX,
+      origOffsetY: transform.offsetY,
+      moved: false,
+    };
   }
-  function handleMouseUp() { dragRef.current = null; }
-  function handleClick() { if (hovered) router.push(`/scheme/${hovered.id}`); }
+
+  function handlePointerUp(e) {
+    const drag = dragRef.current;
+    dragRef.current = null;
+    e.currentTarget.releasePointerCapture?.(e.pointerId);
+    if (drag && !drag.moved) {
+      const [mx, my] = pointerCoords(e);
+      const nearest = findNearestPoint(mx, my);
+      if (nearest) router.push(`/scheme/${nearest.id}`);
+    }
+  }
+
   function handleWheel(e) {
     e.preventDefault();
-    setTransform((v) => ({ ...v, scale: Math.min(6, Math.max(0.5, v.scale * (e.deltaY < 0 ? 1.1 : 0.9))) }));
+    setTransform((value) => ({ ...value, scale: Math.min(6, Math.max(0.6, value.scale * (e.deltaY < 0 ? 1.12 : 0.9))) }));
   }
 
   const displayHovered = hovered ? localizeSchemeContent(hovered) : null;
@@ -116,24 +174,63 @@ export default function ConstellationPage() {
       <h1 className="font-display text-3xl text-ledger text-center">{t("constellation_title")}</h1>
       <p className="mt-2 text-center text-ink/70 font-body max-w-2xl mx-auto">
         {t("constellation_subtitle")}
-        {data?.explainedVariance && <span className="block text-xs text-muted mt-1">{t("constellation_variance", { a: (data.explainedVariance[0] * 100).toFixed(0), b: (data.explainedVariance[1] * 100).toFixed(0) })}</span>}
+        {data?.explainedVariance && (
+          <span className="block text-xs text-muted mt-1">
+            {t("constellation_variance", { a: (data.explainedVariance[0] * 100).toFixed(0), b: (data.explainedVariance[1] * 100).toFixed(0) })}
+          </span>
+        )}
       </p>
 
       <div className="mt-4 flex justify-center gap-4 text-xs font-body flex-wrap">
-        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: LEVEL_COLORS.Central }} />{t("browse_central")}</span>
-        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: LEVEL_COLORS.State }} />{t("browse_state")}</span>
+        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-saffron-dark" />{t("browse_central")}</span>
+        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-bottle" />{t("browse_state")}</span>
         <span className="text-muted">{t("constellation_legend_hint")}</span>
+        <Link href="/browse" className="font-semibold text-saffron-dark hover:underline">{t("nav_browse")} →</Link>
       </div>
 
-      <div ref={containerRef} className="mt-4 border border-borderc rounded-lg bg-white/50 overflow-hidden relative">
-        {!data ? <p className="text-center py-20 text-muted font-body">{t("constellation_loading")}</p> : <canvas ref={canvasRef} height={520} className="w-full cursor-grab active:cursor-grabbing" onMouseMove={handleMouseMove} onMouseDown={handleMouseDown} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp} onClick={handleClick} onWheel={handleWheel} />}
+      <div ref={containerRef} className="mt-4 relative overflow-hidden rounded-xl border border-borderc bg-white/50 shadow-sm">
+        <div className="absolute end-3 top-3 z-20 flex gap-1 rounded-lg border border-borderc bg-white/90 p-1 shadow-sm">
+          <button type="button" onClick={() => setTransform((v) => ({ ...v, scale: Math.min(6, v.scale * 1.25) }))} aria-label="Zoom in" title="Zoom in" className="interactive-surface flex h-8 w-8 items-center justify-center rounded-md text-ledger hover:bg-khadi-dark/70">+</button>
+          <button type="button" onClick={() => setTransform((v) => ({ ...v, scale: Math.max(0.6, v.scale / 1.25) }))} aria-label="Zoom out" title="Zoom out" className="interactive-surface flex h-8 w-8 items-center justify-center rounded-md text-ledger hover:bg-khadi-dark/70">−</button>
+          <button type="button" onClick={() => setTransform(DEFAULT_TRANSFORM)} aria-label="Reset view" title="Reset" className="interactive-surface flex h-8 min-w-8 items-center justify-center rounded-md px-2 text-xs font-body font-semibold text-ledger hover:bg-khadi-dark/70">↺</button>
+        </div>
+
+        {!data ? (
+          <div className="p-5" aria-live="polite" aria-label={t("constellation_loading")}>
+            <div className="skeleton h-[520px] w-full rounded-xl" />
+          </div>
+        ) : (
+          <canvas
+            ref={canvasRef}
+            height={520}
+            tabIndex={0}
+            role="img"
+            aria-label={t("constellation_title")}
+            className="w-full cursor-grab active:cursor-grabbing"
+            style={{ touchAction: "none" }}
+            onPointerMove={handlePointerMove}
+            onPointerDown={handlePointerDown}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={() => { dragRef.current = null; }}
+            onPointerLeave={() => { if (!dragRef.current) setHovered(null); }}
+            onWheel={handleWheel}
+          />
+        )}
+
         {hovered && (
-          <div className="absolute top-3 start-3 max-w-xs bg-ledger text-white text-xs font-body px-3 py-2 rounded-lg shadow-lg pointer-events-none">
+          <div className="absolute start-3 top-3 z-10 max-w-[70%] rounded-lg bg-ledger px-3 py-2 text-xs font-body text-white shadow-lg pointer-events-none">
             <p className="font-semibold">{displayHovered?.name || hovered.name}</p>
-            <p className="text-white/70 mt-0.5">{hovered.level === "Central" ? t("browse_central") : t("browse_state")}{hovered.state ? ` · ${localizeState(locale, hovered.state)}` : ""}</p>
+            <p className="mt-0.5 text-white/70">
+              {hovered.level === "Central" ? t("browse_central") : t("browse_state")}
+              {hovered.state ? ` · ${localizeState(locale, hovered.state)}` : ""}
+            </p>
           </div>
         )}
       </div>
+
+      <p className="mt-3 text-center text-xs text-muted font-body">
+        <Link href="/browse" className="underline">{t("nav_browse")}</Link>
+      </p>
     </div>
   );
 }

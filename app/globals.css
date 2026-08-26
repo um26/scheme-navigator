@@ -16,8 +16,6 @@
   --c-surface: 255 255 255;
 }
 
-/* Dark mode deliberately uses a separate visual identity: warm charcoal, ivory,
-   copper and saffron. The light theme keeps the original bottle-green palette. */
 html.dark {
   --c-khadi: 20 18 17;
   --c-khadi-dark: 30 26 23;
@@ -33,7 +31,7 @@ html.dark {
   color-scheme: dark;
 }
 
-html { --body-font: 'Hind'; --display-font: 'Yatra One'; color-scheme: light; }
+html { --body-font: 'Hind'; --display-font: 'Yatra One'; color-scheme: light; scroll-behavior:smooth; }
 html:lang(as), html:lang(bn) { --body-font: 'Noto Sans Bengali'; --display-font: 'Noto Sans Bengali'; }
 html:lang(brx), html:lang(doi), html:lang(hi), html:lang(gom), html:lang(mai), html:lang(mr), html:lang(ne), html:lang(sa) { --body-font: 'Noto Sans Devanagari'; --display-font: 'Noto Sans Devanagari'; }
 html:lang(gu) { --body-font: 'Noto Sans Gujarati'; --display-font: 'Noto Sans Gujarati'; }
@@ -48,6 +46,7 @@ html:lang(ta) { --body-font: 'Noto Sans Tamil'; --display-font: 'Noto Sans Tamil
 html:lang(te) { --body-font: 'Noto Sans Telugu'; --display-font: 'Noto Sans Telugu'; }
 
 body {
+  min-height:100vh;
   background-color: rgb(var(--c-khadi));
   background-image: radial-gradient(circle at 1px 1px, rgba(31,42,60,0.035) 1px, transparent 0);
   background-size: 14px 14px;
@@ -64,8 +63,8 @@ html.dark body {
 }
 .font-body { font-family:var(--body-font), sans-serif; }
 h1,h2,h3,.font-display { font-family:var(--display-font), var(--body-font), sans-serif; }
+section[id] { scroll-margin-top:9rem; }
 
-/* Tailwind's built-in white utilities become warm elevated surfaces in dark mode. */
 html.dark [class~="bg-white"] { background-color: rgb(var(--c-surface)); }
 html.dark [class~="bg-white/40"] { background-color: rgb(var(--c-surface) / .40); }
 html.dark [class~="bg-white/50"] { background-color: rgb(var(--c-surface) / .50); }
@@ -73,42 +72,86 @@ html.dark [class~="bg-white/60"] { background-color: rgb(var(--c-surface) / .72)
 html.dark [class~="bg-white/70"] { background-color: rgb(var(--c-surface) / .80); }
 html.dark [class~="bg-white/80"] { background-color: rgb(var(--c-surface) / .86); }
 html.dark [class~="bg-white/90"] { background-color: rgb(var(--c-surface) / .92); }
+html.dark [class~="bg-white/95"] { background-color: rgb(var(--c-surface) / .96); }
 html.dark [class~="hover:bg-white"]:hover { background-color: rgb(43 37 33); }
+html.dark [class~="hover:bg-white/60"]:hover { background-color: rgb(43 37 33 / .68); }
+html.dark [class~="hover:bg-white/70"]:hover { background-color: rgb(43 37 33 / .78); }
 html.dark [class~="hover:bg-white/80"]:hover { background-color: rgb(43 37 33 / .86); }
+html.dark [class~="bg-red-50"] { background-color: rgb(127 29 29 / .18); }
+html.dark [class~="text-red-700"] { color: rgb(252 165 165); }
+html.dark [class~="border-red-200"] { border-color: rgb(185 28 28 / .45); }
 
-/* In dark mode, every former bottle-green accent becomes copper. */
 html.dark [class~="text-bottle"] { color: rgb(231 164 107); }
 html.dark [class~="hover:text-bottle"]:hover { color: rgb(242 181 126); }
 html.dark [class~="text-saffron-dark"] { color: rgb(240 165 95); }
 html.dark [class~="hover:text-saffron-dark"]:hover { color: rgb(248 185 123); }
 html.dark [class~="hover:border-bottle"]:hover { border-color: rgb(var(--c-saffron)); }
-
-/* Ledger is intentionally a light text token in dark mode, so buttons that use
-   bg-ledger + text-white need an explicit copper treatment instead of a white pill. */
-html.dark [class~="bg-ledger"][class~="text-white"] {
-  background-color: rgb(var(--c-saffron-dark));
-  color: rgb(255 248 239);
-}
-html.dark [class~="bg-ledger"][class~="border-ledger"] {
-  border-color: rgb(var(--c-saffron-dark));
-}
+html.dark [class~="bg-ledger"][class~="text-white"] { background-color: rgb(var(--c-saffron-dark)); color: rgb(255 248 239); }
+html.dark [class~="bg-ledger"][class~="border-ledger"] { border-color: rgb(var(--c-saffron-dark)); }
 html.dark [class~="hover:border-ledger"]:hover { border-color: rgb(var(--c-saffron)); }
-
-/* Give the main dark surfaces just enough separation without looking like gray cards. */
 html.dark [class~="border-borderc"] { border-color: rgb(var(--c-borderc) / .82); }
-html.dark input,
-html.dark select,
-html.dark textarea {
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
+html.dark input, html.dark select, html.dark textarea { box-shadow: inset 0 1px 0 rgba(255,255,255,.025); }
+
+.language-menu {
+  background-color:rgb(var(--c-surface));
+  box-shadow:0 18px 50px rgba(18,14,11,.22), 0 4px 14px rgba(18,14,11,.12);
 }
+html.dark .language-menu { box-shadow:0 22px 60px rgba(0,0,0,.48), 0 4px 16px rgba(0,0,0,.30); }
+.language-options { scrollbar-width:thin; scrollbar-color:rgb(var(--c-borderc)) transparent; scrollbar-gutter:stable; }
+.language-options::-webkit-scrollbar { width:8px; }
+.language-options::-webkit-scrollbar-track { background:transparent; }
+.language-options::-webkit-scrollbar-thumb { background:rgb(var(--c-borderc)); border-radius:999px; border:2px solid rgb(var(--c-surface)); }
+
+.nav-scroll { scrollbar-width:none; -ms-overflow-style:none; }
+.nav-scroll::-webkit-scrollbar { display:none; }
+
+.loading-dot {
+  width:.55rem;
+  height:.55rem;
+  border-radius:999px;
+  background:rgb(var(--c-saffron-dark));
+  box-shadow:0 0 0 0 rgb(var(--c-saffron-dark) / .35);
+  animation:loadingPulse 1.25s ease-out infinite;
+}
+
+.skeleton {
+  position:relative;
+  overflow:hidden;
+  background:rgb(var(--c-borderc) / .34);
+}
+.skeleton::after {
+  content:"";
+  position:absolute;
+  inset:0;
+  transform:translateX(-100%);
+  background:linear-gradient(90deg, transparent, rgb(var(--c-surface) / .72), transparent);
+  animation:skeletonSweep 1.35s ease-in-out infinite;
+}
+
+.interactive-surface {
+  transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease, background-color .18s ease, color .18s ease;
+}
+.interactive-surface:active { transform:scale(.985); }
 
 .jali-divider { height:20px; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='20' viewBox='0 0 40 20'%3E%3Cpath d='M0 10 L10 0 L20 10 L10 20 Z M20 10 L30 0 L40 10 L30 20 Z' fill='none' stroke='%23C46F14' stroke-width='1' opacity='0.5'/%3E%3C/svg%3E"); background-repeat:repeat-x; background-position:center; }
 html.dark .jali-divider { filter: brightness(1.18) saturate(.82); opacity:.78; }
 html[dir="rtl"] a[href^="http"], html[dir="rtl"] code { direction:ltr; unicode-bidi:isolate; }
-a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible { outline:2px solid #C46F14; outline-offset:2px; }
-html.dark a:focus-visible,html.dark button:focus-visible,html.dark input:focus-visible,html.dark select:focus-visible,html.dark textarea:focus-visible { outline-color:#E0914D; }
+html[dir="rtl"] input[type="number"], html[dir="rtl"] input[type="url"] { direction:ltr; text-align:start; }
+html[dir="rtl"] .rtl-isolate { direction:ltr; unicode-bidi:isolate; }
+a,button { -webkit-tap-highlight-color:transparent; }
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible,canvas:focus-visible,[role="button"]:focus-visible { outline:2px solid #C46F14; outline-offset:2px; }
+html.dark a:focus-visible,html.dark button:focus-visible,html.dark input:focus-visible,html.dark select:focus-visible,html.dark textarea:focus-visible,html.dark summary:focus-visible,html.dark canvas:focus-visible,html.dark [role="button"]:focus-visible { outline-color:#E0914D; }
+::selection { background:rgb(var(--c-saffron) / .32); color:rgb(var(--c-ledger)); }
+
 @keyframes fadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
+@keyframes loadingPulse { 70% { box-shadow:0 0 0 7px rgb(var(--c-saffron-dark) / 0); } 100% { box-shadow:0 0 0 0 rgb(var(--c-saffron-dark) / 0); } }
+@keyframes skeletonSweep { 100% { transform:translateX(100%); } }
 .animate-fadeIn { animation:fadeIn .35s ease-out; }
-@media (prefers-reduced-motion:reduce) { .animate-fadeIn { animation:none; } * { transition-duration:.01ms !important; } }
 .line-clamp-2 { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 .line-clamp-3 { display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+
+@media (prefers-reduced-motion:reduce) {
+  html { scroll-behavior:auto; }
+  .animate-fadeIn,.loading-dot,.skeleton::after { animation:none; }
+  *,*::before,*::after { transition-duration:.01ms !important; animation-duration:.01ms !important; animation-iteration-count:1 !important; }
+}

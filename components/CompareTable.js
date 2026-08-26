@@ -25,12 +25,30 @@ export default function CompareTable({ schemes }) {
   ];
 
   return (
-    <div className="overflow-x-auto border border-borderc rounded-lg bg-white/60">
-      <table className="w-full text-sm font-body">
-        <thead><tr className="border-b border-borderc"><th className="text-start p-3 text-muted font-medium w-32">{t("scheme_eligibility_criteria")}</th>{localized.map(({ canonical, display }) => <th key={canonical.id} className="text-start p-3 font-display text-ledger font-normal">{display.name}</th>)}</tr></thead>
+    <div className="overflow-x-auto rounded-xl border border-borderc bg-white/60 shadow-sm">
+      <table className="min-w-[720px] w-full text-sm font-body">
+        <thead>
+          <tr className="border-b border-borderc">
+            <th className="sticky start-0 z-10 w-36 bg-khadi p-3 text-start font-medium text-muted">{t("scheme_eligibility_criteria")}</th>
+            {localized.map(({ canonical, display }) => (
+              <th key={canonical.id} className="min-w-[210px] p-3 text-start font-display font-normal text-ledger">{display.name}</th>
+            ))}
+          </tr>
+        </thead>
         <tbody>
-          {rows.map((row) => <tr key={row.label} className="border-b border-borderc/60 last:border-0"><td className="p-3 text-muted">{row.label}</td>{localized.map(({ canonical }) => <td key={canonical.id} className="p-3 text-ink">{row.get(canonical)}</td>)}</tr>)}
-          <tr><td className="p-3 text-muted">{t("scheme_benefits")}</td>{localized.map(({ canonical, display }) => { const benefit = stripMarkdown(display.benefits || ""); return <td key={canonical.id} className="p-3 text-bottle text-xs">{benefit.slice(0,120)}{benefit.length > 120 ? "…" : ""}</td>; })}</tr>
+          {rows.map((row) => (
+            <tr key={row.label} className="border-b border-borderc/60 last:border-0">
+              <td className="sticky start-0 z-10 bg-khadi p-3 text-muted">{row.label}</td>
+              {localized.map(({ canonical }) => <td key={canonical.id} className="p-3 text-ink">{row.get(canonical)}</td>)}
+            </tr>
+          ))}
+          <tr>
+            <td className="sticky start-0 z-10 bg-khadi p-3 text-muted">{t("scheme_benefits")}</td>
+            {localized.map(({ canonical, display }) => {
+              const benefit = stripMarkdown(display.benefits || "");
+              return <td key={canonical.id} className="p-3 text-xs text-bottle">{benefit.slice(0, 160)}{benefit.length > 160 ? "…" : ""}</td>;
+            })}
+          </tr>
         </tbody>
       </table>
     </div>
