@@ -13,11 +13,19 @@ export default function LanguageSwitcher() {
   const ref = useRef(null);
 
   useEffect(() => {
-    function onClickOutside(e) {
+    function onPointerDown(e) {
       if (ref.current && !ref.current.contains(e.target)) setOpen(false);
     }
-    document.addEventListener("mousedown", onClickOutside);
-    return () => document.removeEventListener("mousedown", onClickOutside);
+    function onKeyDown(e) {
+      if (e.key === "Escape") setOpen(false);
+    }
+
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
   }, []);
 
   async function handleSelect(code) {
@@ -41,32 +49,41 @@ export default function LanguageSwitcher() {
         onClick={() => !switching && setOpen((o) => !o)}
         aria-label={t("lang_switch_label")}
         aria-expanded={open}
+        aria-haspopup="menu"
         aria-busy={switching ? "true" : "false"}
         disabled={switching}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-borderc bg-white/60 text-sm font-body text-ledger hover:border-saffron-dark transition-colors disabled:opacity-70"
+        className="flex max-w-[52vw] items-center gap-1.5 rounded-full border border-borderc bg-white/60 px-3 py-1.5 text-sm font-body text-ledger shadow-sm transition-all duration-150 hover:border-saffron-dark hover:bg-white/80 active:scale-[.98] disabled:opacity-70 md:max-w-none"
       >
         <span aria-hidden="true">🌐</span>
-        <span dir={current.dir}>{switching ? "…" : current.native}</span>
-        <span className={`text-xs transition-transform duration-200 ${open ? "rotate-180" : ""}`}>▾</span>
+        <span dir={current.dir} className="truncate">
+          {switching ? "…" : current.native}
+        </span>
+        <span className={`shrink-0 text-xs transition-transform duration-200 ${open ? "rotate-180" : ""}`}>▾</span>
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-64 max-w-[88vw] max-h-[70vh] overflow-y-auto bg-white/95 backdrop-blur-sm border border-borderc rounded-xl shadow-xl z-20 p-1.5">
+        <div
+          role="menu"
+          aria-label={t("lang_switch_label")}
+          className="language-menu absolute right-0 z-[70] mt-2 w-72 max-w-[calc(100vw-2rem)] rounded-2xl border border-borderc p-2 shadow-2xl animate-fadeIn"
+        >
           {LOCALES.map((l) => (
             <button
               key={l.code}
               type="button"
+              role="menuitemradio"
+              aria-checked={l.code === locale}
               onClick={() => handleSelect(l.code)}
-              className={`w-full px-3 py-2.5 rounded-lg text-sm font-body transition-colors flex items-center justify-between gap-3 ${
+              className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-sm font-body transition-all duration-150 ${
                 l.code === locale
-                  ? "bg-bottle text-white"
-                  : "text-ink hover:bg-khadi-dark/50"
+                  ? "bg-saffron-dark text-white shadow-sm"
+                  : "text-ink hover:bg-khadi-dark/70"
               }`}
             >
-              <span dir={l.dir} className="font-medium text-left">
+              <span dir={l.dir} className="min-w-0 truncate text-left font-medium">
                 {l.native}
               </span>
-              <span className="text-[11px] opacity-60 text-right truncate">
+              <span className="shrink-0 max-w-[7.5rem] truncate text-right text-[11px] opacity-60">
                 {l.name}
               </span>
             </button>

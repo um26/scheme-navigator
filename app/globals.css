@@ -33,7 +33,7 @@ html.dark {
   color-scheme: dark;
 }
 
-html { --body-font: 'Hind'; --display-font: 'Yatra One'; color-scheme: light; }
+html { --body-font: 'Hind'; --display-font: 'Yatra One'; color-scheme: light; scroll-behavior:smooth; }
 html:lang(as), html:lang(bn) { --body-font: 'Noto Sans Bengali'; --display-font: 'Noto Sans Bengali'; }
 html:lang(brx), html:lang(doi), html:lang(hi), html:lang(gom), html:lang(mai), html:lang(mr), html:lang(ne), html:lang(sa) { --body-font: 'Noto Sans Devanagari'; --display-font: 'Noto Sans Devanagari'; }
 html:lang(gu) { --body-font: 'Noto Sans Gujarati'; --display-font: 'Noto Sans Gujarati'; }
@@ -48,6 +48,7 @@ html:lang(ta) { --body-font: 'Noto Sans Tamil'; --display-font: 'Noto Sans Tamil
 html:lang(te) { --body-font: 'Noto Sans Telugu'; --display-font: 'Noto Sans Telugu'; }
 
 body {
+  min-height:100vh;
   background-color: rgb(var(--c-khadi));
   background-image: radial-gradient(circle at 1px 1px, rgba(31,42,60,0.035) 1px, transparent 0);
   background-size: 14px 14px;
@@ -73,7 +74,9 @@ html.dark [class~="bg-white/60"] { background-color: rgb(var(--c-surface) / .72)
 html.dark [class~="bg-white/70"] { background-color: rgb(var(--c-surface) / .80); }
 html.dark [class~="bg-white/80"] { background-color: rgb(var(--c-surface) / .86); }
 html.dark [class~="bg-white/90"] { background-color: rgb(var(--c-surface) / .92); }
+html.dark [class~="bg-white/95"] { background-color: rgb(var(--c-surface) / .96); }
 html.dark [class~="hover:bg-white"]:hover { background-color: rgb(43 37 33); }
+html.dark [class~="hover:bg-white/70"]:hover { background-color: rgb(43 37 33 / .78); }
 html.dark [class~="hover:bg-white/80"]:hover { background-color: rgb(43 37 33 / .86); }
 
 /* In dark mode, every former bottle-green accent becomes copper. */
@@ -102,13 +105,47 @@ html.dark textarea {
   box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
 }
 
+/* Compact, opaque language menu so page artwork never bleeds through in dark mode. */
+.language-menu {
+  max-height:min(68vh, 560px);
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  scrollbar-gutter:stable;
+  background-color:rgb(var(--c-surface));
+  box-shadow:0 18px 50px rgba(18,14,11,.22), 0 4px 14px rgba(18,14,11,.12);
+}
+.language-menu::-webkit-scrollbar { width:8px; }
+.language-menu::-webkit-scrollbar-track { background:transparent; }
+.language-menu::-webkit-scrollbar-thumb { background:rgb(var(--c-borderc)); border-radius:999px; border:2px solid rgb(var(--c-surface)); }
+.language-menu { scrollbar-width:thin; scrollbar-color:rgb(var(--c-borderc)) transparent; }
+html.dark .language-menu { box-shadow:0 22px 60px rgba(0,0,0,.48), 0 4px 16px rgba(0,0,0,.30); }
+
+.nav-scroll { scrollbar-width:none; -ms-overflow-style:none; }
+.nav-scroll::-webkit-scrollbar { display:none; }
+
+.loading-dot {
+  width:.55rem;
+  height:.55rem;
+  border-radius:999px;
+  background:rgb(var(--c-saffron-dark));
+  box-shadow:0 0 0 0 rgb(var(--c-saffron-dark) / .35);
+  animation:loadingPulse 1.25s ease-out infinite;
+}
+
 .jali-divider { height:20px; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='20' viewBox='0 0 40 20'%3E%3Cpath d='M0 10 L10 0 L20 10 L10 20 Z M20 10 L30 0 L40 10 L30 20 Z' fill='none' stroke='%23C46F14' stroke-width='1' opacity='0.5'/%3E%3C/svg%3E"); background-repeat:repeat-x; background-position:center; }
 html.dark .jali-divider { filter: brightness(1.18) saturate(.82); opacity:.78; }
 html[dir="rtl"] a[href^="http"], html[dir="rtl"] code { direction:ltr; unicode-bidi:isolate; }
+a,button { -webkit-tap-highlight-color:transparent; }
 a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible { outline:2px solid #C46F14; outline-offset:2px; }
 html.dark a:focus-visible,html.dark button:focus-visible,html.dark input:focus-visible,html.dark select:focus-visible,html.dark textarea:focus-visible { outline-color:#E0914D; }
+::selection { background:rgb(var(--c-saffron) / .32); color:rgb(var(--c-ledger)); }
 @keyframes fadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
+@keyframes loadingPulse { 70% { box-shadow:0 0 0 7px rgb(var(--c-saffron-dark) / 0); } 100% { box-shadow:0 0 0 0 rgb(var(--c-saffron-dark) / 0); } }
 .animate-fadeIn { animation:fadeIn .35s ease-out; }
-@media (prefers-reduced-motion:reduce) { .animate-fadeIn { animation:none; } * { transition-duration:.01ms !important; } }
+@media (prefers-reduced-motion:reduce) {
+  html { scroll-behavior:auto; }
+  .animate-fadeIn,.loading-dot { animation:none; }
+  * { transition-duration:.01ms !important; }
+}
 .line-clamp-2 { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 .line-clamp-3 { display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
