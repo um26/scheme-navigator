@@ -16,8 +16,9 @@ export default function Header() {
 
   const PRIMARY_LINKS = [
     { href: "/", label: t("nav_find") },
+    { href: "/search", label: "Search" },
     { href: "/browse", label: t("nav_browse") },
-    { href: "/profile", label: "Profile" },
+    { href: "/profile", label: "Profiles" },
   ];
 
   const SECONDARY_LINKS = [
@@ -57,7 +58,7 @@ export default function Header() {
       <div className="mx-auto grid max-w-5xl grid-cols-[1fr_auto] items-center gap-x-4 gap-y-2 px-4 py-3 md:grid-cols-[auto_1fr_auto] md:py-4">
         <Link href="/" className="min-w-0 truncate font-display text-2xl text-ledger">Scheme Navigator</Link>
 
-        <nav aria-label="Primary" className="hidden items-center justify-end gap-4 font-body text-sm text-ledger md:flex lg:gap-5">
+        <nav aria-label="Primary" className="hidden items-center justify-end gap-3 font-body text-sm text-ledger md:flex lg:gap-4">
           {desktopLinks.map((link) => {
             const active = isActive(link.href);
             return (

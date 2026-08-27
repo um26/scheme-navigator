@@ -2,10 +2,10 @@ import schemes from "../../public/data/schemes.json";
 import SchemeCard from "../../components/SchemeCard";
 import BrowseRegionPicker from "../../components/BrowseRegionPicker";
 import Link from "next/link";
-import { stripMarkdown } from "../../lib/markdownLite";
 import { getServerLocale } from "../../lib/i18n/getServerLocale";
 import { translate } from "../../lib/i18n/dictionaries";
 import { localizeState } from "../../lib/i18n/entities";
+import { searchSchemes } from "../../lib/schemeSearch";
 
 const PAGE_SIZE = 20;
 const CATEGORIES = ["SC", "ST", "OBC", "EWS"];
@@ -39,11 +39,8 @@ export default function BrowsePage({ searchParams }) {
   let filtered = schemes;
   if (region !== "All") filtered = region === "Central" ? filtered.filter((s) => s.level === "Central") : filtered.filter((s) => s.state === region);
   if (category !== "All") filtered = filtered.filter((s) => s.eligibility?.categories?.includes(category));
-  if (gender !== "any") filtered = filtered.filter((s) => (s.eligibility?.gender || "any") === gender);
-  if (q) {
-    const qLower = q.toLowerCase();
-    filtered = filtered.filter((s) => s.name?.toLowerCase().includes(qLower) || stripMarkdown(s.description || "").toLowerCase().includes(qLower));
-  }
+  if (gender !== "any") filtered = filtered.filter((s) => (s.eligibility?.gender || "any") === gender;
+  if (q) filtered = searchSchemes(q, filtered, filtered.length || 1);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
@@ -61,8 +58,13 @@ export default function BrowsePage({ searchParams }) {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-10">
-      <h1 className="font-display text-3xl text-ledger">{t("browse_title")}</h1>
-      <p className="mt-2 text-ink/70 font-body">{t("browse_subtitle_full", { n: schemes.length })}</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="font-display text-3xl text-ledger">{t("browse_title")}</h1>
+          <p className="mt-2 text-ink/70 font-body">{t("browse_subtitle_full", { n: schemes.length })}</p>
+        </div>
+        <Link href="/search" className="interactive-surface rounded-full border border-borderc bg-white/60 px-4 py-2 text-sm font-body font-semibold text-bottle hover:bg-white">Open Search v2 →</Link>
+      </div>
 
       <div className="mt-6 rounded-xl border border-borderc bg-white/50 p-3 shadow-sm">
         <form method="GET" action="/browse" className="flex flex-col gap-2 sm:flex-row">
@@ -70,18 +72,17 @@ export default function BrowsePage({ searchParams }) {
           <input type="hidden" name="category" value={category} />
           <input type="hidden" name="gender" value={gender} />
           <input type="hidden" name="page" value="1" />
-          <input type="search" name="q" defaultValue={q} placeholder={t("browse_search_placeholder")} className="min-w-0 flex-1 rounded-lg border border-borderc bg-white/70 p-2.5 font-body text-sm text-ink transition-colors focus:outline-none focus:ring-2 focus:ring-saffron" />
+          <input type="search" name="q" defaultValue={q} placeholder="Search with typos, aliases or benefits…" className="min-w-0 flex-1 rounded-lg border border-borderc bg-white/70 p-2.5 font-body text-sm text-ink transition-colors focus:outline-none focus:ring-2 focus:ring-saffron" />
           <button type="submit" className="interactive-surface rounded-lg bg-bottle px-4 py-2 text-sm font-body font-semibold text-white hover:bg-bottle-light">{t("browse_search_button")}</button>
         </form>
+        <p className="mt-2 text-[11px] font-body text-muted">Search now tolerates close spellings and common aliases such as PMKISAN, vidhwa, awas, mahila and scholarship variants.</p>
 
         <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-borderc/60 pt-3">
           <BrowseRegionPicker options={regionOptions} currentRegion={region} currentLabel={regionLabel} baseParams={baseParams} />
 
           <span className="ms-1 text-xs uppercase tracking-wide text-muted font-body">{t("browse_category_label")}</span>
           <Link href={buildHref({ ...baseParams, category: "All", page: 1 })} className={`interactive-surface rounded-full border px-2.5 py-1 text-xs font-body ${category === "All" ? "border-saffron-dark bg-saffron-dark text-white" : "border-borderc bg-white/60 hover:bg-white"}`}>{t("browse_any")}</Link>
-          {CATEGORIES.map((c) => (
-            <Link key={c} href={buildHref({ ...baseParams, category: c, page: 1 })} className={`interactive-surface rounded-full border px-2.5 py-1 text-xs font-body ${category === c ? "border-saffron-dark bg-saffron-dark text-white" : "border-borderc bg-white/60 hover:bg-white"}`}>{c}</Link>
-          ))}
+          {CATEGORIES.map((c) => <Link key={c} href={buildHref({ ...baseParams, category: c, page: 1 })} className={`interactive-surface rounded-full border px-2.5 py-1 text-xs font-body ${category === c ? "border-saffron-dark bg-saffron-dark text-white" : "border-borderc bg-white/60 hover:bg-white"}`}>{c}</Link>)}
 
           <span className="ms-1 text-xs uppercase tracking-wide text-muted font-body">{t("browse_gender_label")}</span>
           {["any", "male", "female"].map((g) => (

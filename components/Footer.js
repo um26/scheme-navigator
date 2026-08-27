@@ -11,10 +11,16 @@ export default function Footer() {
       <div className="jali-divider" />
       <div className="max-w-5xl mx-auto px-4 py-6 text-center text-sm text-muted font-body">
         <p>
-          <a href="https://instagram.com/binary.bots_01" target="_blank" rel="noopener noreferrer" className="text-bottle hover:text-saffron-dark transition-colors font-medium">{t("footer_credit")}</a>
+          <a href="https://instagram.com/binary.bots_01" target="_blank" rel="noopener noreferrer" className="text-bottle hover:text-saffron-dark transition-colors font-medium">
+            {t("footer_credit")}
+          </a>
         </p>
         <p className="mt-1 text-xs">{t("footer_disclaimer")}</p>
-        <p className="mt-2 text-[11px]"><Link href="/diagnostics" className="underline underline-offset-2 hover:text-saffron-dark">Data health & freshness</Link></p>
+        <div className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 text-[11px]">
+          <Link className="underline underline-offset-2 hover:text-saffron-dark" href="/diagnostics">Data health & freshness</Link>
+          <span aria-hidden="true">·</span>
+          <Link className="underline underline-offset-2 hover:text-saffron-dark" href="/updates">Scheme change history</Link>
+        </div>
       </div>
     </footer>
   );
