@@ -45,7 +45,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/huggingface
-          key: hf-indictrans2-public-dist-200m-v1
+          key: hf-indictrans2-public-dist-200m-v2
 
       - name: Restore incremental translation cache
         uses: actions/cache@v4
@@ -67,7 +67,7 @@ jobs:
           I18N_BASE_REF: origin/i18n/production-baseline
         run: node scripts/lint-i18n-ui.mjs
 
-      - name: Select zero-secret IndicTrans2 mirror for this authoring run
+      - name: Select complete zero-secret IndicTrans2 mirror for this authoring run
         shell: bash
         run: |
           python - <<'PY'
@@ -75,7 +75,7 @@ jobs:
           p = Path('scripts/translate-catalog.py')
           text = p.read_text(encoding='utf-8')
           official = 'MODEL_NAME = "ai4bharat/indictrans2-en-indic-dist-200M"'
-          public = 'MODEL_NAME = "Raghavan/indictrans2-en-indic-dist-200M"'
+          public = 'MODEL_NAME = "naklitechie/indictrans2-en-indic-dist-200M"'
           if official not in text:
               raise SystemExit('Expected IndicTrans2 model declaration was not found')
           p.write_text(text.replace(official, public, 1), encoding='utf-8')
@@ -87,6 +87,7 @@ jobs:
         run: npm run i18n:translate-ui
 
       - name: Restore canonical authoring script
+        if: always()
         run: git checkout -- scripts/translate-catalog.py
 
       - name: Verify every selectable language
