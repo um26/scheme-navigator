@@ -1,42 +1,26 @@
 #!/usr/bin/env python3
 """Fast staged IndicTrans2 generator for Scheme Navigator.
 
-Use this AFTER the current full Hindi run. It keeps the exact same runtime pack
-format as translate-catalog.py, so completed Hindi packs remain compatible.
-
-Stages:
-  ui       UI strings + state names only (does not touch scheme packs)
-  core     name, description, ministry, tags + UI/state names
-  details  benefits, eligibility text + UI/state names
-  long     application process, required documents + UI/state names
-  full     all fields (equivalent coverage to the original generator)
-
-Recommended rollout for the remaining scheduled languages:
-  1) core for all remaining locales
-  2) details for all remaining locales (locale becomes selectable here)
-  3) long progressively
-
-For normal product UI changes, use the ui tier. It only translates missing/changed
-UI strings, reuses the append-only cache, and never rewrites catalog translation
-packs. This makes adding interface copy cheap enough to run after every feature pass.
-
-The cache format/key is shared with translate-catalog.py, so prior work is reused.
-Greedy decoding (1 beam) is used by default, batches are larger, and CUDA OOMs
-are automatically split into smaller sub-batches.
+The UI tier is release-oriented: it translates only missing/changed UI strings,
+never rewrites scheme packs, and records the English source hash each locale was
+translated from. This makes future feature copy incremental instead of forcing a
+full 4,693-scheme translation rerun.
 """
 from __future__ import annotations
 
 import argparse
 import gzip
+import hashlib
 import importlib.util
 import json
-import os
-import sys
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 BASE_SCRIPT = ROOT / "scripts" / "translate-catalog.py"
+UI_EXISTING_JSON = ROOT / ".translation-work" / "ui-existing.json"
+UI_MANIFEST = ROOT / "public" / "i18n" / "ui-manifest.json"
 
 spec = importlib.util.spec_from_file_location("scheme_i18n_base", BASE_SCRIPT)
 if spec is None or spec.loader is None:
@@ -65,9 +49,42 @@ def format_eta(seconds: float) -> str:
         return "0m"
     minutes = int(seconds // 60)
     hours, minutes = divmod(minutes, 60)
-    if hours:
-        return f"{hours}h {minutes:02d}m"
-    return f"{minutes}m"
+    return f"{hours}h {minutes:02d}m" if hours else f"{minutes}m"
+
+
+def ui_source_hash(text: str) -> str:
+    return hashlib.sha256(f"ui-v1|{text}".encode("utf-8")).hexdigest()
+
+
+def aggregate_source_hash(key_hashes: dict[str, str]) -> str:
+    payload = json.dumps(sorted(key_hashes.items()), ensure_ascii=False, separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def load_ui_manifest():
+    if UI_MANIFEST.exists():
+        try:
+            raw = base.load_json(UI_MANIFEST)
+            if isinstance(raw, dict):
+                raw.setdefault("version", 1)
+                raw.setdefault("model", base.MODEL_NAME)
+                raw.setdefault("keys", {})
+                raw.setdefault("locales", {})
+                return raw, True
+        except Exception:
+            pass
+    return {"version": 1, "model": base.MODEL_NAME, "keys": {}, "locales": {}}, False
+
+
+def write_ui_manifest(manifest, key_hashes):
+    UI_MANIFEST.parent.mkdir(parents=True, exist_ok=True)
+    manifest["version"] = 1
+    manifest["model"] = base.MODEL_NAME
+    manifest["generatedAt"] = datetime.now(timezone.utc).isoformat()
+    manifest["sourceHash"] = aggregate_source_hash(key_hashes)
+    manifest["keys"] = key_hashes
+    UI_MANIFEST.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(f"[i18n] wrote UI freshness manifest -> {UI_MANIFEST}")
 
 
 class FastTranslator(base.Translator):
@@ -76,9 +93,7 @@ class FastTranslator(base.Translator):
         super().__init__(target_lang, batch_size)
 
     def _translate_once(self, texts: list[str]) -> list[str]:
-        batch = self.processor.preprocess_batch(
-            texts, src_lang=base.SRC_LANG, tgt_lang=self.target
-        )
+        batch = self.processor.preprocess_batch(texts, src_lang=base.SRC_LANG, tgt_lang=self.target)
         inputs = self.tokenizer(
             batch,
             truncation=True,
@@ -128,63 +143,70 @@ def collect_units(schemes, ui_source, states, fields):
             for _, payload in base.markdown_parts(text):
                 if payload and payload != "\n":
                     units.add(payload)
-
-    # UI and state names are intentionally included in every stage. After the first
-    # stage they are cache hits, while this guarantees any independently-run stage
-    # still produces a complete UI dictionary.
     for text in ui_source.values():
         if isinstance(text, str) and text.strip():
             protected, _ = base.protect_placeholders(text)
-            for chunk in base.split_long_text(protected):
-                units.add(chunk)
+            units.update(base.split_long_text(protected))
     for state in states:
         units.add(state)
     return sorted(units)
 
 
+def collect_ui_units(ui_source: dict[str, str], keys: list[str], missing_states: list[str]):
+    units: set[str] = set(missing_states)
+    for key in keys:
+        source = ui_source.get(key)
+        if not isinstance(source, str) or not source.strip():
+            continue
+        protected, _ = base.protect_placeholders(source)
+        units.update(base.split_long_text(protected))
+    return sorted(units)
+
+
 def translate_units(locale: str, target: str, units: list[str], batch_size: int, beams: int):
+    if not units:
+        return {}
     cache = base.load_cache(locale)
     pending = [text for text in units if base.cache_key(target, text) not in cache]
     cached = len(units) - len(pending)
     print(
-        f"[i18n:{locale}] {len(units)} tier chunks; {cached} cached; "
-        f"{len(pending)} need translation",
+        f"[i18n:{locale}] {len(units)} chunks; {cached} cached; {len(pending)} need translation",
         flush=True,
     )
-    if not pending:
-        return {text: cache[base.cache_key(target, text)] for text in units}
-
-    translator = FastTranslator(target, batch_size, beams)
-    started = time.monotonic()
-    last_report = 0
-
-    for start in range(0, len(pending), batch_size):
-        batch = pending[start:start + batch_size]
-        outputs = translator.translate_batch(batch)
-        if len(outputs) != len(batch):
-            raise RuntimeError(
-                f"Model returned {len(outputs)} translations for {len(batch)} inputs"
-            )
-        rows = []
-        for source, output in zip(batch, outputs):
-            key = base.cache_key(target, source)
-            cache[key] = output
-            rows.append((key, output))
-        base.append_cache(locale, rows)
-
-        done = min(start + len(batch), len(pending))
-        if done - last_report >= max(batch_size * 10, 1) or done == len(pending):
-            elapsed = max(time.monotonic() - started, 0.001)
-            rate = done / elapsed
-            remaining = (len(pending) - done) / max(rate, 0.001)
-            print(
-                f"[i18n:{locale}] translated {done}/{len(pending)} new chunks "
-                f"| {rate:.1f} chunks/s | ETA {format_eta(remaining)}",
-                flush=True,
-            )
-            last_report = done
-
+    if pending:
+        translator = FastTranslator(target, batch_size, beams)
+        started = time.monotonic()
+        last_report = 0
+        for start in range(0, len(pending), batch_size):
+            batch = pending[start:start + batch_size]
+            outputs = translator.translate_batch(batch)
+            if len(outputs) != len(batch):
+                raise RuntimeError(f"Model returned {len(outputs)} translations for {len(batch)} inputs")
+            rows = []
+            for source, output in zip(batch, outputs):
+                key = base.cache_key(target, source)
+                cache[key] = output
+                rows.append((key, output))
+            base.append_cache(locale, rows)
+            done = min(start + len(batch), len(pending))
+            if done - last_report >= max(batch_size * 10, 1) or done == len(pending):
+                elapsed = max(time.monotonic() - started, 0.001)
+                rate = done / elapsed
+                remaining = (len(pending) - done) / max(rate, 0.001)
+                print(
+                    f"[i18n:{locale}] translated {done}/{len(pending)} new chunks "
+                    f"| {rate:.1f} chunks/s | ETA {format_eta(remaining)}",
+                    flush=True,
+                )
+                last_report = done
     return {text: cache[base.cache_key(target, text)] for text in units}
+
+
+def rebuild_ui_value(source: str, translated: dict[str, str]) -> str:
+    protected, mapping = base.protect_placeholders(source)
+    chunks = base.split_long_text(protected)
+    rebuilt = " ".join(translated.get(chunk, chunk) for chunk in chunks)
+    return base.restore_placeholders(rebuilt, mapping, source)
 
 
 def read_existing_pack(locale: str):
@@ -202,25 +224,17 @@ def read_existing_pack(locale: str):
         raise RuntimeError(f"Could not merge existing pack {path}: {exc}") from exc
 
 
-def translated_ui(locale: str, ui_source, translated, include_manual: bool = False):
-    # Normal catalog tiers preserve the hand-reviewed hi/te/ta dictionaries. UI-only
-    # refreshes are different: generating these locales is useful because manual keys
-    # still override generated keys at runtime, while newly-added keys are filled in.
-    if locale in base.MANUAL_UI and not include_manual:
+def translated_ui(locale: str, ui_source, translated):
+    if locale in base.MANUAL_UI:
         return {}
-    ui = {}
-    for key, source in ui_source.items():
-        if not isinstance(source, str):
-            continue
-        protected, mapping = base.protect_placeholders(source)
-        chunks = base.split_long_text(protected)
-        rebuilt = " ".join(translated.get(chunk, chunk) for chunk in chunks)
-        ui[key] = base.restore_placeholders(rebuilt, mapping, source)
-    return ui
+    return {
+        key: rebuild_ui_value(source, translated)
+        for key, source in ui_source.items()
+        if isinstance(source, str)
+    }
 
 
 def pack_has_fields(pack, schemes, fields) -> bool:
-    """True when every non-empty canonical source field has a translated value."""
     rows = pack.get("schemes", {})
     for scheme in schemes:
         values = rows.get(scheme["id"])
@@ -236,14 +250,65 @@ def pack_has_fields(pack, schemes, fields) -> bool:
     return True
 
 
-def build_ui_only(locale, target, ui_source, states, batch_size, beams):
-    # No scheme fields are collected or written here. This is safe after a feature
-    # change even when the catalog packs are large and already complete.
-    units = collect_units([], ui_source, states, tuple())
+def build_ui_only(
+    locale,
+    target,
+    ui_source,
+    states,
+    batch_size,
+    beams,
+    existing_ui,
+    existing_state_map,
+    manifest,
+    bootstrap_manifest,
+):
+    key_hashes = {
+        key: ui_source_hash(source)
+        for key, source in ui_source.items()
+        if isinstance(source, str) and source.strip()
+    }
+    locale_manifest = dict(manifest.get("locales", {}).get(locale, {}))
+    existing_ui = dict(existing_ui or {})
+    existing_state_map = dict(existing_state_map or {})
+
+    pending_keys = []
+    for key, expected_hash in key_hashes.items():
+        current = base.clean_text(existing_ui.get(key))
+        if not current:
+            pending_keys.append(key)
+        elif not bootstrap_manifest and locale_manifest.get(key) != expected_hash:
+            pending_keys.append(key)
+
+    missing_states = [state for state in states if not base.clean_text(existing_state_map.get(state))]
+    print(
+        f"[i18n:{locale}] UI delta: {len(pending_keys)} changed/missing key(s), "
+        f"{len(missing_states)} missing state name(s)",
+        flush=True,
+    )
+
+    units = collect_ui_units(ui_source, pending_keys, missing_states)
     translated = translate_units(locale, target, units, batch_size, beams)
-    ui = translated_ui(locale, ui_source, translated, include_manual=True)
-    state_map = {state: translated.get(state, state) for state in states}
-    return ui, state_map
+
+    ui = {
+        key: existing_ui[key]
+        for key in key_hashes
+        if base.clean_text(existing_ui.get(key))
+    }
+    for key in pending_keys:
+        ui[key] = rebuild_ui_value(ui_source[key], translated)
+
+    state_map = {
+        state: existing_state_map[state]
+        for state in states
+        if base.clean_text(existing_state_map.get(state))
+    }
+    for state in missing_states:
+        state_map[state] = translated.get(state, state)
+
+    # Every explicit value in the output is now tied to the current English source.
+    locale_manifest = {key: expected_hash for key, expected_hash in key_hashes.items() if base.clean_text(ui.get(key))}
+    manifest.setdefault("locales", {})[locale] = locale_manifest
+    return ui, state_map, key_hashes
 
 
 def build_stage(locale, target, schemes, ui_source, states, fields, batch_size, beams, tier):
@@ -262,11 +327,7 @@ def build_stage(locale, target, schemes, ui_source, states, fields, batch_size, 
             values[FIELD_INDEX[field]] = base.rebuild_text(source, translated) if source else ""
         scheme_pack[scheme["id"]] = values
 
-    pack["version"] = 2
-    pack["locale"] = locale
-    pack["fields"] = base.FIELD_ORDER
-    pack["lastTier"] = tier
-
+    pack.update({"version": 2, "locale": locale, "fields": base.FIELD_ORDER, "lastTier": tier})
     base.PACK_DIR.mkdir(parents=True, exist_ok=True)
     path = base.PACK_DIR / f"{locale}.json.gz"
     with gzip.open(path, "wt", encoding="utf-8", compresslevel=9) as handle:
@@ -301,14 +362,13 @@ def main():
     parser.add_argument("--beams", type=int, default=1, help="1=greedy/fast; 5=old quality mode")
     args = parser.parse_args()
 
-    if args.batch_size < 1:
-        raise SystemExit("--batch-size must be >= 1")
-    if args.beams < 1:
-        raise SystemExit("--beams must be >= 1")
+    if args.batch_size < 1 or args.beams < 1:
+        raise SystemExit("--batch-size and --beams must be >= 1")
 
     base.ensure_sources()
     schemes = base.load_json(base.SCHEMES_JSON)
     ui_source = base.load_json(base.UI_EN_JSON)
+    existing_explicit = base.load_json(UI_EXISTING_JSON) if UI_EXISTING_JSON.exists() else {}
     states = sorted({base.clean_text(s.get("state")) for s in schemes if base.clean_text(s.get("state"))})
     dictionaries, state_maps, ready = base.load_generated_state()
     fields = TIERS[args.tier]
@@ -319,23 +379,36 @@ def main():
         flush=True,
     )
 
-    for locale in parse_locales(args.locales):
-        if args.tier == "ui":
-            ui, state_map = build_ui_only(
+    requested = parse_locales(args.locales)
+    if args.tier == "ui":
+        manifest, manifest_exists = load_ui_manifest()
+        key_hashes = {}
+        for locale in requested:
+            seed = {
+                **(existing_explicit.get(locale) or {}),
+                **(dictionaries.get(locale) or {}),
+            }
+            ui, state_map, key_hashes = build_ui_only(
                 locale,
                 base.LANGUAGES[locale],
                 ui_source,
                 states,
                 args.batch_size,
                 args.beams,
+                seed,
+                state_maps.get(locale) or {},
+                manifest,
+                bootstrap_manifest=not manifest_exists,
             )
             dictionaries[locale] = ui
             state_maps[locale] = state_map
-            # UI refreshes never decide whether a catalog locale is selector-ready.
-            # Preserve the existing ready set exactly.
+            # UI refreshes never change selector readiness.
             base.write_generated(dictionaries, state_maps, ready)
-            continue
+        write_ui_manifest(manifest, key_hashes)
+        print("\nDone. UI refresh was incremental; scheme gzip packs were not touched.")
+        return
 
+    for locale in requested:
         ui, state_map, selector_ready = build_stage(
             locale,
             base.LANGUAGES[locale],
@@ -350,14 +423,10 @@ def main():
         if ui:
             dictionaries[locale] = ui
         state_maps[locale] = state_map
-
-        # Existing hand-authored UI locales remain available. New locales are only
-        # exposed once core + details fields are populated, not after a core-only pass.
         if locale in base.MANUAL_UI or (selector_ready and dictionaries.get(locale)):
             ready.add(locale)
         elif locale not in base.MANUAL_UI:
             ready.discard(locale)
-
         base.write_generated(dictionaries, state_maps, ready)
 
     print("\nDone. Packs are mergeable: run the next tier later without losing prior fields.")
