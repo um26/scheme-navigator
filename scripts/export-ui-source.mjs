@@ -12,12 +12,17 @@ async function importPlainJs(file) {
   return import(url);
 }
 
-const [{ default: en }, extrasModule] = await Promise.all([
+const [{ default: en }, extrasModule, conditionModule] = await Promise.all([
   importPlainJs("lib/i18n/locales/en.js"),
   importPlainJs("lib/i18n/extras.js"),
+  importPlainJs("lib/i18n/conditionMessages.js"),
 ]);
 
-const effective = { ...en, ...(extrasModule.EXTRA_MESSAGES?.en || {}) };
+const effective = {
+  ...en,
+  ...(extrasModule.EXTRA_MESSAGES?.en || {}),
+  ...(conditionModule.CONDITION_MESSAGES?.en || {}),
+};
 mkdirSync(path.dirname(OUT), { recursive: true });
 writeFileSync(OUT, JSON.stringify(effective, null, 2));
 console.log(`[i18n] exported ${Object.keys(effective).length} English UI messages -> ${OUT}`);
