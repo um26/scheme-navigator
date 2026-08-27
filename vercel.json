@@ -2,5 +2,10 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
   "buildCommand": "npm run build",
-  "ignoreCommand": "exit 1"
+  "ignoreCommand": "exit 1",
+  "git": {
+    "deploymentEnabled": {
+      "work/i18n-darkmode-final": false
+    }
+  }
 }
