@@ -1,10 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import BookmarkButton from "./BookmarkButton";
+import EligibilityEvidence from "./EligibilityEvidence";
 import RichText from "./RichText";
 import { useLanguage } from "../lib/i18n/LanguageContext";
 import { localizeState } from "../lib/i18n/entities";
+import { useProfile } from "../lib/useProfile";
 
 function EligibilityRow({ label, value }) {
   return (
@@ -18,6 +21,7 @@ function EligibilityRow({ label, value }) {
 export default function SchemeDetailClient({ scheme, returnTo = null }) {
   const router = useRouter();
   const { t, locale, localizeSchemeContent, translationLoading } = useLanguage();
+  const { profile, hydrated: profileHydrated, hasProfile } = useProfile();
   const displayScheme = localizeSchemeContent(scheme);
   const elig = scheme.eligibility || {};
 
@@ -47,13 +51,8 @@ export default function SchemeDetailClient({ scheme, returnTo = null }) {
   ].filter(Boolean);
 
   return (
-    <div
-      className={`mx-auto max-w-3xl px-4 py-10 transition-opacity ${hasActions ? "pb-28 md:pb-10" : ""} ${translationLoading ? "opacity-80" : "opacity-100"}`}
-      aria-busy={translationLoading ? "true" : "false"}
-    >
-      <button type="button" onClick={backToBrowse} className="text-sm font-body text-bottle hover:underline">
-        {t("scheme_back_to_browse")}
-      </button>
+    <div className={`mx-auto max-w-3xl px-4 py-10 transition-opacity ${hasActions ? "pb-28 md:pb-10" : ""} ${translationLoading ? "opacity-80" : "opacity-100"}`} aria-busy={translationLoading ? "true" : "false"}>
+      <button type="button" onClick={backToBrowse} className="text-sm font-body text-bottle hover:underline">{t("scheme_back_to_browse")}</button>
 
       <div className="mt-4 flex items-start justify-between gap-4">
         <h1 className="font-display text-2xl text-ledger md:text-3xl">{displayScheme.name}</h1>
@@ -62,49 +61,33 @@ export default function SchemeDetailClient({ scheme, returnTo = null }) {
 
       <div className="mt-3 flex flex-wrap gap-2">
         <span className="rounded-full bg-bottle/10 px-3 py-1 text-xs font-semibold text-bottle">
-          {scheme.level === "Central" ? t("browse_central") : t("browse_state")}
-          {scheme.state ? ` · ${localizeState(locale, scheme.state)}` : ""}
+          {scheme.level === "Central" ? t("browse_central") : t("browse_state")}{scheme.state ? ` · ${localizeState(locale, scheme.state)}` : ""}
         </span>
         {displayScheme.ministry && <span className="rounded-full bg-saffron/10 px-3 py-1 text-xs font-semibold text-saffron-dark">{displayScheme.ministry}</span>}
         {displayScheme.tags && <span className="rounded-full bg-ledger/10 px-3 py-1 text-xs font-semibold text-ledger">{displayScheme.tags}</span>}
       </div>
 
       <div className="mt-5 grid gap-2 sm:grid-cols-3">
-        <div className="rounded-xl border border-borderc bg-white/60 p-3">
-          <p className="text-[11px] uppercase tracking-wide text-muted font-body">{t("scheme_age")}</p>
-          <p className="mt-1 text-sm font-body font-semibold text-ledger">{ageText}</p>
-        </div>
-        <div className="rounded-xl border border-borderc bg-white/60 p-3">
-          <p className="text-[11px] uppercase tracking-wide text-muted font-body">{t("scheme_gender_row")}</p>
-          <p className="mt-1 text-sm font-body font-semibold text-ledger">{genderText}</p>
-        </div>
-        <div className="rounded-xl border border-borderc bg-white/60 p-3">
-          <p className="text-[11px] uppercase tracking-wide text-muted font-body">{t("scheme_income_cap")}</p>
-          <p className="rtl-isolate mt-1 text-sm font-body font-semibold text-ledger">{incomeText}</p>
-        </div>
+        <div className="rounded-xl border border-borderc bg-white/60 p-3"><p className="text-[11px] uppercase tracking-wide text-muted font-body">{t("scheme_age")}</p><p className="mt-1 text-sm font-body font-semibold text-ledger">{ageText}</p></div>
+        <div className="rounded-xl border border-borderc bg-white/60 p-3"><p className="text-[11px] uppercase tracking-wide text-muted font-body">{t("scheme_gender_row")}</p><p className="mt-1 text-sm font-body font-semibold text-ledger">{genderText}</p></div>
+        <div className="rounded-xl border border-borderc bg-white/60 p-3"><p className="text-[11px] uppercase tracking-wide text-muted font-body">{t("scheme_income_cap")}</p><p className="rtl-isolate mt-1 text-sm font-body font-semibold text-ledger">{incomeText}</p></div>
       </div>
 
+      {profileHydrated && hasProfile ? (
+        <EligibilityEvidence scheme={scheme} profile={profile} />
+      ) : profileHydrated ? (
+        <div className="mt-6 rounded-xl border border-borderc bg-white/50 p-4 text-sm font-body text-ink/75">
+          Want a personal pass / unknown / fail breakdown? <Link href="/profile" className="font-semibold text-bottle hover:underline">Add My Profile →</Link>
+        </div>
+      ) : null}
+
       <nav aria-label="Scheme sections" className="nav-scroll sticky top-[7.25rem] z-30 -mx-1 mt-5 flex gap-1 overflow-x-auto rounded-xl border border-borderc bg-khadi/95 p-1 shadow-sm backdrop-blur-md md:top-[5.75rem]">
-        {sectionLinks.map(([id, label]) => (
-          <a key={id} href={`#${id}`} className="shrink-0 rounded-lg px-3 py-2 text-xs font-body font-semibold text-ledger transition-colors hover:bg-white/60 hover:text-saffron-dark">
-            {label}
-          </a>
-        ))}
+        {sectionLinks.map(([id, label]) => <a key={id} href={`#${id}`} className="shrink-0 rounded-lg px-3 py-2 text-xs font-body font-semibold text-ledger transition-colors hover:bg-white/60 hover:text-saffron-dark">{label}</a>)}
       </nav>
 
-      {displayScheme.description && (
-        <section id="about" className="mt-6">
-          <h2 className="mb-2 font-display text-lg text-ledger">{t("scheme_about")}</h2>
-          <RichText text={displayScheme.description} className="text-ink/85 font-body" />
-        </section>
-      )}
+      {displayScheme.description && <section id="about" className="mt-6"><h2 className="mb-2 font-display text-lg text-ledger">{t("scheme_about")}</h2><RichText text={displayScheme.description} className="text-ink/85 font-body" /></section>}
 
-      {displayScheme.benefits && (
-        <section id="benefits" className="mt-6 rounded-xl border border-saffron/30 bg-saffron/10 p-5">
-          <h2 className="mb-2 font-display text-lg text-ledger">{t("scheme_benefits")}</h2>
-          <RichText text={displayScheme.benefits} className="text-ink font-body" />
-        </section>
-      )}
+      {displayScheme.benefits && <section id="benefits" className="mt-6 rounded-xl border border-saffron/30 bg-saffron/10 p-5"><h2 className="mb-2 font-display text-lg text-ledger">{t("scheme_benefits")}</h2><RichText text={displayScheme.benefits} className="text-ink font-body" /></section>}
 
       <section id="eligibility" className="mt-6 rounded-xl border border-borderc bg-white/60 p-5">
         <h2 className="mb-2 font-display text-lg text-ledger">{t("scheme_eligibility_criteria")}</h2>
@@ -119,23 +102,9 @@ export default function SchemeDetailClient({ scheme, returnTo = null }) {
         <p className="mt-3 text-xs text-muted font-body">{t("scheme_eligibility_note")}</p>
       </section>
 
-      {displayScheme.applicationProcess && (
-        <section id="apply" className="mt-6">
-          <details open={displayScheme.applicationProcess.length < 700} className="rounded-xl border border-borderc bg-white/50 p-5">
-            <summary className="cursor-pointer font-display text-lg text-ledger">{t("scheme_how_to_apply")}</summary>
-            <RichText text={displayScheme.applicationProcess} className="mt-4 text-ink/85 font-body" />
-          </details>
-        </section>
-      )}
+      {displayScheme.applicationProcess && <section id="apply" className="mt-6"><details open={displayScheme.applicationProcess.length < 700} className="rounded-xl border border-borderc bg-white/50 p-5"><summary className="cursor-pointer font-display text-lg text-ledger">{t("scheme_how_to_apply")}</summary><RichText text={displayScheme.applicationProcess} className="mt-4 text-ink/85 font-body" /></details></section>}
 
-      {displayScheme.documentsRequired && (
-        <section id="documents" className="mt-6">
-          <details open={displayScheme.documentsRequired.length < 550} className="rounded-xl border border-borderc bg-white/50 p-5">
-            <summary className="cursor-pointer font-display text-lg text-ledger">{t("scheme_documents_required")}</summary>
-            <RichText text={displayScheme.documentsRequired} className="mt-4 text-ink/85 font-body" />
-          </details>
-        </section>
-      )}
+      {displayScheme.documentsRequired && <section id="documents" className="mt-6"><details open={displayScheme.documentsRequired.length < 550} className="rounded-xl border border-borderc bg-white/50 p-5"><summary className="cursor-pointer font-display text-lg text-ledger">{t("scheme_documents_required")}</summary><RichText text={displayScheme.documentsRequired} className="mt-4 text-ink/85 font-body" /></details></section>}
 
       {hasActions && (
         <div className="mt-8 hidden flex-wrap gap-3 md:flex">
@@ -148,16 +117,8 @@ export default function SchemeDetailClient({ scheme, returnTo = null }) {
 
       {hasActions && (
         <div className="fixed inset-x-0 bottom-3 z-40 mx-auto flex w-[min(92vw,34rem)] gap-2 rounded-2xl border border-borderc bg-white/95 p-2.5 shadow-2xl backdrop-blur-md md:hidden">
-          {scheme.applyUrl && (
-            <a href={scheme.applyUrl} target="_blank" rel="noopener noreferrer" className="interactive-surface flex-1 rounded-xl bg-bottle px-4 py-3 text-center font-body font-semibold text-white hover:bg-bottle-light">
-              {t("scheme_apply_now")}
-            </a>
-          )}
-          {scheme.officialUrl && (
-            <a href={scheme.officialUrl} target="_blank" rel="noopener noreferrer" className={`interactive-surface rounded-xl border border-borderc bg-white/70 px-4 py-3 text-center font-body font-semibold text-ledger hover:bg-white ${scheme.applyUrl ? "shrink-0" : "flex-1"}`}>
-              {t("scheme_official_page")} ↗
-            </a>
-          )}
+          {scheme.applyUrl && <a href={scheme.applyUrl} target="_blank" rel="noopener noreferrer" className="interactive-surface flex-1 rounded-xl bg-bottle px-4 py-3 text-center font-body font-semibold text-white hover:bg-bottle-light">{t("scheme_apply_now")}</a>}
+          {scheme.officialUrl && <a href={scheme.officialUrl} target="_blank" rel="noopener noreferrer" className={`interactive-surface rounded-xl border border-borderc bg-white/70 px-4 py-3 text-center font-body font-semibold text-ledger hover:bg-white ${scheme.applyUrl ? "shrink-0" : "flex-1"}`}>{t("scheme_official_page")} ↗</a>}
         </div>
       )}
     </div>

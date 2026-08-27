@@ -7,9 +7,11 @@ import FreeTextIntake from "./FreeTextIntake";
 import ShareCard from "./ShareCard";
 import SemanticToggle from "./SemanticToggle";
 import { useLanguage } from "../lib/i18n/LanguageContext";
+import { useProfile } from "../lib/useProfile";
 
 export default function FinderApp() {
   const { t, locale } = useLanguage();
+  const { profile: savedProfile, hydrated: profileHydrated, saveProfile } = useProfile();
   const [mode, setMode] = useState("guided");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
@@ -50,9 +52,11 @@ export default function FinderApp() {
   }
 
   function handleGuidedSubmit(profile) {
+    saveProfile(profile);
     const queryText = [profile.occupation, profile.category, profile.state].filter(Boolean).join(" ") || "welfare scheme";
     runFind({ mode: "guided", profile, additionalContext: profile.occupation }, queryText);
   }
+
   function handleFreeTextSubmit(text) {
     runFind({ text }, text);
   }
@@ -66,11 +70,7 @@ export default function FinderApp() {
             onClick={() => changeMode("guided")}
             aria-pressed={mode === "guided"}
             disabled={loading}
-            className={`rounded-lg px-4 py-2 text-sm font-body font-semibold transition-all duration-150 disabled:opacity-60 ${
-              mode === "guided"
-                ? "bg-ledger text-white shadow-sm"
-                : "text-ink hover:bg-white/70"
-            }`}
+            className={`rounded-lg px-4 py-2 text-sm font-body font-semibold transition-all duration-150 disabled:opacity-60 ${mode === "guided" ? "bg-ledger text-white shadow-sm" : "text-ink hover:bg-white/70"}`}
           >
             {t("finder_mode_guided")}
           </button>
@@ -79,11 +79,7 @@ export default function FinderApp() {
             onClick={() => changeMode("freetext")}
             aria-pressed={mode === "freetext"}
             disabled={loading}
-            className={`rounded-lg px-4 py-2 text-sm font-body font-semibold transition-all duration-150 disabled:opacity-60 ${
-              mode === "freetext"
-                ? "bg-ledger text-white shadow-sm"
-                : "text-ink hover:bg-white/70"
-            }`}
+            className={`rounded-lg px-4 py-2 text-sm font-body font-semibold transition-all duration-150 disabled:opacity-60 ${mode === "freetext" ? "bg-ledger text-white shadow-sm" : "text-ink hover:bg-white/70"}`}
           >
             {t("finder_mode_freetext")}
           </button>
@@ -92,7 +88,7 @@ export default function FinderApp() {
 
       <div key={mode} className="animate-fadeIn" aria-busy={loading ? "true" : "false"}>
         {mode === "guided" ? (
-          <GuidedIntake onSubmit={handleGuidedSubmit} loading={loading} />
+          <GuidedIntake onSubmit={handleGuidedSubmit} loading={loading} initialProfile={savedProfile} profileHydrated={profileHydrated} />
         ) : (
           <FreeTextIntake onSubmit={handleFreeTextSubmit} loading={loading} />
         )}
@@ -106,64 +102,35 @@ export default function FinderApp() {
       )}
 
       {error && (
-        <p className="mt-6 animate-fadeIn rounded-lg border border-red-200 bg-red-50 p-4 font-body text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-200">
-          {error}
-        </p>
+        <p className="mt-6 animate-fadeIn rounded-lg border border-red-200 bg-red-50 p-4 font-body text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-200">{error}</p>
       )}
 
       {result && (
         <div className="mt-10 animate-fadeIn">
-          {result.message && (
-            <p className="text-ink/80 font-body bg-white/60 border border-borderc rounded-lg p-4">
-              {result.message}
-            </p>
-          )}
-
-          {result.explanation && (
-            <div className="bg-saffron/10 border border-saffron/30 rounded-lg p-5 font-body text-ink whitespace-pre-line">
-              {result.explanation}
-            </div>
-          )}
+          {result.message && <p className="text-ink/80 font-body bg-white/60 border border-borderc rounded-lg p-4">{result.message}</p>}
+          {result.explanation && <div className="bg-saffron/10 border border-saffron/30 rounded-lg p-5 font-body text-ink whitespace-pre-line">{result.explanation}</div>}
 
           {result.matches && result.matches.length > 0 && (
             <>
               <div className="mt-4 flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => setShowShareCard(true)}
-                  className="flex items-center gap-1 text-sm font-body font-semibold text-saffron-dark transition-colors hover:text-saffron"
-                >
-                  {t("finder_share_results")}
-                </button>
+                <button type="button" onClick={() => setShowShareCard(true)} className="flex items-center gap-1 text-sm font-body font-semibold text-saffron-dark transition-colors hover:text-saffron">{t("finder_share_results")}</button>
               </div>
-
               <div className="mt-2 grid gap-4">
-                {result.matches.map((scheme) => (
-                  <SchemeCard key={scheme.id} scheme={scheme} checks={scheme._checks} />
-                ))}
+                {result.matches.map((scheme) => <SchemeCard key={scheme.id} scheme={scheme} checks={scheme._checks} />)}
               </div>
-
-              {result.candidatePool && result.candidatePool.length > 1 && (
-                <SemanticToggle query={lastQueryText} candidatePool={result.candidatePool} />
-              )}
+              {result.candidatePool && result.candidatePool.length > 1 && <SemanticToggle query={lastQueryText} candidatePool={result.candidatePool} />}
             </>
           )}
 
           {typeof result.totalEligible === "number" && (
             <p className="mt-4 text-xs text-muted font-body">
-              {result.totalEligible} {t("results_schemes_passed")}
-              {result.matches?.length < result.totalEligible
-                ? `; ${t("results_showing_most_relevant", { n: result.matches.length })}`
-                : ""}
-              .
+              {result.totalEligible} {t("results_schemes_passed")}{result.matches?.length < result.totalEligible ? `; ${t("results_showing_most_relevant", { n: result.matches.length })}` : ""}.
             </p>
           )}
         </div>
       )}
 
-      {showShareCard && result?.matches?.length > 0 && (
-        <ShareCard matches={result.matches} profile={result.profile} onClose={() => setShowShareCard(false)} />
-      )}
+      {showShareCard && result?.matches?.length > 0 && <ShareCard matches={result.matches} profile={result.profile} onClose={() => setShowShareCard(false)} />}
     </div>
   );
 }
