@@ -1,8 +1,10 @@
 "use client";
 
 import { useBookmarks } from "../lib/useBookmarks";
+import { useLanguage } from "../lib/i18n/LanguageContext";
 
 export default function BookmarkButton({ schemeId, size = "md" }) {
+  const { t } = useLanguage();
   const { isBookmarked, toggle, hydrated } = useBookmarks();
   const saved = hydrated && isBookmarked(schemeId);
 
@@ -17,8 +19,8 @@ export default function BookmarkButton({ schemeId, size = "md" }) {
         toggle(schemeId);
       }}
       aria-pressed={saved}
-      aria-label={saved ? "Remove from saved schemes" : "Save this scheme"}
-      title={saved ? "Saved \u2014 click to remove" : "Save for later"}
+      aria-label={saved ? t("bookmark_remove_aria") : t("bookmark_save_aria")}
+      title={saved ? t("bookmark_saved_title") : t("bookmark_save_title")}
       className={`${dims} shrink-0 rounded-full border flex items-center justify-center transition-all duration-150 ${
         saved
           ? "bg-saffron border-saffron-dark text-white scale-100"
