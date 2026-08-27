@@ -5,6 +5,7 @@ Use this AFTER the current full Hindi run. It keeps the exact same runtime pack
 format as translate-catalog.py, so completed Hindi packs remain compatible.
 
 Stages:
+  ui       UI strings + state names only (does not touch scheme packs)
   core     name, description, ministry, tags + UI/state names
   details  benefits, eligibility text + UI/state names
   long     application process, required documents + UI/state names
@@ -14,6 +15,10 @@ Recommended rollout for the remaining scheduled languages:
   1) core for all remaining locales
   2) details for all remaining locales (locale becomes selectable here)
   3) long progressively
+
+For normal product UI changes, use the ui tier. It only translates missing/changed
+UI strings, reuses the append-only cache, and never rewrites catalog translation
+packs. This makes adding interface copy cheap enough to run after every feature pass.
 
 The cache format/key is shared with translate-catalog.py, so prior work is reused.
 Greedy decoding (1 beam) is used by default, batches are larger, and CUDA OOMs
@@ -46,6 +51,7 @@ GenerationMixin._supports_default_dynamic_cache = classmethod(lambda cls: False)
 
 FIELD_INDEX = {field: i for i, field in enumerate(base.FIELD_ORDER)}
 TIERS = {
+    "ui": tuple(),
     "core": ("name", "description", "ministry", "tags"),
     "details": ("benefits", "eligibilityText"),
     "long": ("applicationProcess", "documentsRequired"),
@@ -196,8 +202,11 @@ def read_existing_pack(locale: str):
         raise RuntimeError(f"Could not merge existing pack {path}: {exc}") from exc
 
 
-def translated_ui(locale: str, ui_source, translated):
-    if locale in base.MANUAL_UI:
+def translated_ui(locale: str, ui_source, translated, include_manual: bool = False):
+    # Normal catalog tiers preserve the hand-reviewed hi/te/ta dictionaries. UI-only
+    # refreshes are different: generating these locales is useful because manual keys
+    # still override generated keys at runtime, while newly-added keys are filled in.
+    if locale in base.MANUAL_UI and not include_manual:
         return {}
     ui = {}
     for key, source in ui_source.items():
@@ -225,6 +234,16 @@ def pack_has_fields(pack, schemes, fields) -> bool:
             if index >= len(values) or not base.clean_text(values[index]):
                 return False
     return True
+
+
+def build_ui_only(locale, target, ui_source, states, batch_size, beams):
+    # No scheme fields are collected or written here. This is safe after a feature
+    # change even when the catalog packs are large and already complete.
+    units = collect_units([], ui_source, states, tuple())
+    translated = translate_units(locale, target, units, batch_size, beams)
+    ui = translated_ui(locale, ui_source, translated, include_manual=True)
+    state_map = {state: translated.get(state, state) for state in states}
+    return ui, state_map
 
 
 def build_stage(locale, target, schemes, ui_source, states, fields, batch_size, beams, tier):
@@ -295,12 +314,28 @@ def main():
     fields = TIERS[args.tier]
 
     print(
-        f"[i18n] tier={args.tier} fields={','.join(fields)} "
+        f"[i18n] tier={args.tier} fields={','.join(fields) if fields else '(UI only)'} "
         f"batch={args.batch_size} beams={args.beams}",
         flush=True,
     )
 
     for locale in parse_locales(args.locales):
+        if args.tier == "ui":
+            ui, state_map = build_ui_only(
+                locale,
+                base.LANGUAGES[locale],
+                ui_source,
+                states,
+                args.batch_size,
+                args.beams,
+            )
+            dictionaries[locale] = ui
+            state_maps[locale] = state_map
+            # UI refreshes never decide whether a catalog locale is selector-ready.
+            # Preserve the existing ready set exactly.
+            base.write_generated(dictionaries, state_maps, ready)
+            continue
+
         ui, state_map, selector_ready = build_stage(
             locale,
             base.LANGUAGES[locale],
