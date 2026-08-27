@@ -4,6 +4,6 @@
   "buildCommand": "npm run build",
   "ignoreCommand": "exit 1",
   "git": {
-    "deploymentEnabled": true
+    "deploymentEnabled": false
   }
 }
