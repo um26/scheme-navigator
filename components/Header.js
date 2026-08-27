@@ -16,9 +16,9 @@ export default function Header() {
 
   const PRIMARY_LINKS = [
     { href: "/", label: t("nav_find") },
-    { href: "/search", label: "Search" },
+    { href: "/search", label: t("nav_search") },
     { href: "/browse", label: t("nav_browse") },
-    { href: "/profile", label: "Profiles" },
+    { href: "/profile", label: t("nav_profiles") },
   ];
 
   const SECONDARY_LINKS = [
@@ -82,7 +82,7 @@ export default function Header() {
           </Link>
 
           <div className="relative shrink-0" ref={moreRef}>
-            <button type="button" onClick={() => setMoreOpen((value) => !value)} aria-haspopup="menu" aria-expanded={moreOpen} aria-label="More navigation" className={`rounded-full px-3 py-1.5 transition-all ${secondaryActive ? "font-semibold text-saffron-dark" : "hover:bg-white/60"}`}><span aria-hidden="true">•••</span></button>
+            <button type="button" onClick={() => setMoreOpen((value) => !value)} aria-haspopup="menu" aria-expanded={moreOpen} aria-label={t("nav_more")} className={`rounded-full px-3 py-1.5 transition-all ${secondaryActive ? "font-semibold text-saffron-dark" : "hover:bg-white/60"}`}><span aria-hidden="true">•••</span></button>
             {moreOpen && (
               <div role="menu" className="absolute end-0 z-[70] mt-2 w-56 rounded-xl border border-borderc bg-white/95 p-2 shadow-xl animate-fadeIn">
                 {SECONDARY_LINKS.map((link) => {
