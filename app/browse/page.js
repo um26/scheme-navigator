@@ -63,7 +63,7 @@ export default function BrowsePage({ searchParams }) {
           <h1 className="font-display text-3xl text-ledger">{t("browse_title")}</h1>
           <p className="mt-2 text-ink/70 font-body">{t("browse_subtitle_full", { n: schemes.length })}</p>
         </div>
-        <Link href="/search" className="interactive-surface rounded-full border border-borderc bg-white/60 px-4 py-2 text-sm font-body font-semibold text-bottle hover:bg-white">Open Search v2 →</Link>
+        <Link href="/search" className="interactive-surface rounded-full border border-borderc bg-white/60 px-4 py-2 text-sm font-body font-semibold text-bottle hover:bg-white">{t("browse_open_search_v2")}</Link>
       </div>
 
       <div className="mt-6 rounded-xl border border-borderc bg-white/50 p-3 shadow-sm">
@@ -72,10 +72,10 @@ export default function BrowsePage({ searchParams }) {
           <input type="hidden" name="category" value={category} />
           <input type="hidden" name="gender" value={gender} />
           <input type="hidden" name="page" value="1" />
-          <input type="search" name="q" defaultValue={q} placeholder="Search with typos, aliases or benefits…" className="min-w-0 flex-1 rounded-lg border border-borderc bg-white/70 p-2.5 font-body text-sm text-ink transition-colors focus:outline-none focus:ring-2 focus:ring-saffron" />
+          <input type="search" name="q" defaultValue={q} placeholder={t("browse_search_v2_placeholder")} className="min-w-0 flex-1 rounded-lg border border-borderc bg-white/70 p-2.5 font-body text-sm text-ink transition-colors focus:outline-none focus:ring-2 focus:ring-saffron" />
           <button type="submit" className="interactive-surface rounded-lg bg-bottle px-4 py-2 text-sm font-body font-semibold text-white hover:bg-bottle-light">{t("browse_search_button")}</button>
         </form>
-        <p className="mt-2 text-[11px] font-body text-muted">Search now tolerates close spellings and common aliases such as PMKISAN, vidhwa, awas, mahila and scholarship variants.</p>
+        <p className="mt-2 text-[11px] font-body text-muted">{t("browse_search_v2_hint")}</p>
 
         <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-borderc/60 pt-3">
           <BrowseRegionPicker options={regionOptions} currentRegion={region} currentLabel={regionLabel} baseParams={baseParams} />
