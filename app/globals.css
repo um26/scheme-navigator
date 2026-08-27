@@ -65,10 +65,18 @@ html.dark body {
 h1,h2,h3,.font-display { font-family:var(--display-font), var(--body-font), sans-serif; }
 section[id] { scroll-margin-top:9rem; }
 
+/* Tailwind white-alpha utilities look like bright grey cards over the dark theme
+   unless every opacity used by the app is remapped to the theme surface token. */
 html.dark [class~="bg-white"] { background-color: rgb(var(--c-surface)); }
+html.dark [class~="bg-white/25"] { background-color: rgb(var(--c-surface) / .25); }
+html.dark [class~="bg-white/30"] { background-color: rgb(var(--c-surface) / .30); }
+html.dark [class~="bg-white/35"] { background-color: rgb(var(--c-surface) / .35); }
 html.dark [class~="bg-white/40"] { background-color: rgb(var(--c-surface) / .40); }
+html.dark [class~="bg-white/45"] { background-color: rgb(var(--c-surface) / .45); }
 html.dark [class~="bg-white/50"] { background-color: rgb(var(--c-surface) / .50); }
+html.dark [class~="bg-white/55"] { background-color: rgb(var(--c-surface) / .58); }
 html.dark [class~="bg-white/60"] { background-color: rgb(var(--c-surface) / .72); }
+html.dark [class~="bg-white/65"] { background-color: rgb(var(--c-surface) / .76); }
 html.dark [class~="bg-white/70"] { background-color: rgb(var(--c-surface) / .80); }
 html.dark [class~="bg-white/80"] { background-color: rgb(var(--c-surface) / .86); }
 html.dark [class~="bg-white/90"] { background-color: rgb(var(--c-surface) / .92); }
