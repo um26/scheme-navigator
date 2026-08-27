@@ -12,6 +12,22 @@ import { localizeState } from "../lib/i18n/entities";
 import { useProfile } from "../lib/useProfile";
 import { evaluateEligibility } from "../lib/ruleEngine";
 
+const FIELD_LABEL_KEYS = {
+  name: "scheme_field_name",
+  description: "scheme_field_description",
+  benefits: "scheme_field_benefits",
+  ministry: "scheme_field_ministry",
+  tags: "scheme_field_tags",
+  applicationProcess: "scheme_field_applicationProcess",
+  documentsRequired: "scheme_field_documentsRequired",
+  eligibilityText: "scheme_field_eligibilityText",
+  eligibility: "scheme_field_eligibility",
+  state: "scheme_field_state",
+  level: "scheme_field_level",
+  applyUrl: "scheme_field_applyUrl",
+  officialUrl: "scheme_field_officialUrl",
+};
+
 function EligibilityRow({ label, value }) {
   return (
     <div className="flex justify-between gap-6 border-b border-borderc/60 py-2 last:border-0">
@@ -60,14 +76,31 @@ export default function SchemeDetailClient({ scheme, returnTo = null, relatedSch
     router.push("/browse");
   }
 
+  function fieldLabel(field) {
+    const key = FIELD_LABEL_KEYS[field];
+    return key ? t(key) : field;
+  }
+
+  function conditionLabel(condition) {
+    const key = condition?.key ? `elig_condition_${condition.key}` : null;
+    return key ? t(key) : t("elig_check_additional");
+  }
+
   const sectionLinks = [
     displayScheme.description && ["about", t("scheme_about")],
     displayScheme.benefits && ["benefits", t("scheme_benefits")],
     ["eligibility", t("scheme_eligibility_criteria")],
     displayScheme.applicationProcess && ["apply", t("scheme_how_to_apply")],
     displayScheme.documentsRequired && ["documents", t("scheme_documents_required")],
-    relatedForDisplay.length > 0 && ["related", personalResult?.status === "not_eligible" ? "Alternatives" : "Similar schemes"],
+    relatedForDisplay.length > 0 && ["related", personalResult?.status === "not_eligible" ? t("scheme_section_alternatives") : t("scheme_section_similar")],
   ].filter(Boolean);
+
+  const changedFieldText = Array.isArray(changeInfo?.fields)
+    ? changeInfo.fields.slice(0, 4).map((field) => fieldLabel(field.field)).join(", ")
+    : "";
+  const changeMoreText = Array.isArray(changeInfo?.fields) && changeInfo.fields.length > 4
+    ? t("scheme_catalog_more", { n: changeInfo.fields.length - 4 })
+    : "";
 
   return (
     <div className={`mx-auto max-w-3xl px-4 py-10 transition-opacity ${hasActions ? "pb-28 md:pb-10" : ""} ${translationLoading ? "opacity-80" : "opacity-100"}`} aria-busy={translationLoading ? "true" : "false"}>
@@ -88,11 +121,11 @@ export default function SchemeDetailClient({ scheme, returnTo = null, relatedSch
 
       {changeInfo && (
         <div className="mt-4 rounded-xl border border-saffron/35 bg-saffron/10 p-3 text-xs font-body text-ink/80">
-          <span className="font-semibold text-saffron-dark">Catalog update:</span>{" "}
+          <span className="font-semibold text-saffron-dark">{t("scheme_catalog_update")}</span>{" "}
           {Array.isArray(changeInfo.fields) && changeInfo.fields.length
-            ? `${changeInfo.fields.slice(0, 4).map((field) => field.field).join(", ")} changed in the latest dataset refresh${changeInfo.fields.length > 4 ? ` +${changeInfo.fields.length - 4} more` : ""}.`
-            : "This scheme was newly added in the latest dataset refresh."}
-          {" "}<Link href="/updates" className="font-semibold text-bottle hover:underline">View dataset updates →</Link>
+            ? t("scheme_catalog_changed", { fields: changedFieldText, more: changeMoreText })
+            : t("scheme_catalog_new")}
+          {" "}<Link href="/updates" className="font-semibold text-bottle hover:underline">{t("scheme_view_updates")}</Link>
         </div>
       )}
 
@@ -106,11 +139,11 @@ export default function SchemeDetailClient({ scheme, returnTo = null, relatedSch
         <EligibilityEvidence scheme={scheme} profile={profile} />
       ) : profileHydrated ? (
         <div className="mt-6 rounded-xl border border-borderc bg-white/50 p-4 text-sm font-body text-ink/75">
-          Want a personal pass / verify / fail breakdown? <Link href="/profile" className="font-semibold text-bottle hover:underline">Add a household profile →</Link>
+          {t("scheme_personal_prompt")} <Link href="/profile" className="font-semibold text-bottle hover:underline">{t("scheme_add_profile")}</Link>
         </div>
       ) : null}
 
-      <nav aria-label="Scheme sections" className="nav-scroll sticky top-[7.25rem] z-30 -mx-1 mt-5 flex gap-1 overflow-x-auto rounded-xl border border-borderc bg-khadi/95 p-1 shadow-sm backdrop-blur-md md:top-[5.75rem]">
+      <nav aria-label={t("scheme_sections_aria")} className="nav-scroll sticky top-[7.25rem] z-30 -mx-1 mt-5 flex gap-1 overflow-x-auto rounded-xl border border-borderc bg-khadi/95 p-1 shadow-sm backdrop-blur-md md:top-[5.75rem]">
         {sectionLinks.map(([id, label]) => <a key={id} href={`#${id}`} className="shrink-0 rounded-lg px-3 py-2 text-xs font-body font-semibold text-ledger transition-colors hover:bg-white/60 hover:text-saffron-dark">{label}</a>)}
       </nav>
 
@@ -131,11 +164,11 @@ export default function SchemeDetailClient({ scheme, returnTo = null, relatedSch
 
         {additionalConditions.length > 0 && (
           <div className="mt-4 rounded-lg border border-saffron/30 bg-saffron/10 p-3">
-            <p className="text-xs font-body font-semibold text-saffron-dark">Additional conditions detected in full eligibility text</p>
+            <p className="text-xs font-body font-semibold text-saffron-dark">{t("scheme_additional_conditions_title")}</p>
             <div className="mt-2 flex flex-wrap gap-1.5">
-              {additionalConditions.map((condition) => <span key={condition.key} title={condition.evidence || undefined} className="rounded-full border border-saffron/30 bg-white/45 px-2 py-1 text-[11px] font-body text-ink/80">? {condition.label}</span>)}
+              {additionalConditions.map((condition) => <span key={condition.key} title={locale === "en" ? condition.evidence || undefined : undefined} className="rounded-full border border-saffron/30 bg-white/45 px-2 py-1 text-[11px] font-body text-ink/80">? {conditionLabel(condition)}</span>)}
             </div>
-            <p className="mt-2 text-[11px] font-body text-muted">These are intentionally not auto-approved or auto-rejected until they can be represented as reliable structured rules.</p>
+            <p className="mt-2 text-[11px] font-body text-muted">{t("scheme_additional_conditions_note")}</p>
           </div>
         )}
         <p className="mt-3 text-xs text-muted font-body">{t("scheme_eligibility_note")}</p>
@@ -149,11 +182,11 @@ export default function SchemeDetailClient({ scheme, returnTo = null, relatedSch
         <section id="related" className="mt-8 border-t border-borderc pt-6">
           <div className="flex flex-wrap items-end justify-between gap-2">
             <div>
-              <p className="text-xs uppercase tracking-wide text-saffron-dark font-body font-semibold">Discovery</p>
-              <h2 className="mt-1 font-display text-xl text-ledger">{personalResult?.status === "not_eligible" ? `Alternatives that may fit ${activeProfileLabel || "this profile"}` : "Similar schemes to explore"}</h2>
-              <p className="mt-1 text-xs font-body text-muted">Matched deterministically by benefit/topic overlap, ministry, region and eligibility shape.</p>
+              <p className="text-xs uppercase tracking-wide text-saffron-dark font-body font-semibold">{t("scheme_discovery")}</p>
+              <h2 className="mt-1 font-display text-xl text-ledger">{personalResult?.status === "not_eligible" ? (activeProfileLabel ? t("scheme_alternatives_for", { name: activeProfileLabel }) : t("scheme_alternatives_profile")) : t("scheme_similar_explore")}</h2>
+              <p className="mt-1 text-xs font-body text-muted">{t("scheme_related_explanation")}</p>
             </div>
-            <Link href="/search" className="text-xs font-body font-semibold text-bottle hover:underline">Search all schemes →</Link>
+            <Link href="/search" className="text-xs font-body font-semibold text-bottle hover:underline">{t("scheme_search_all")}</Link>
           </div>
           <div className="mt-4 grid gap-3">
             {relatedForDisplay.map((item) => <SchemeCard key={item.id} scheme={item} returnTo={`/scheme/${scheme.id}`} />)}
