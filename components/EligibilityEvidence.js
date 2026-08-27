@@ -59,8 +59,9 @@ function localizeCheck(t, locale, check, scheme, profile) {
   const key = String(check.key || "");
 
   if (key.startsWith("narrative:")) {
+    const conditionKey = key.slice("narrative:".length);
     return {
-      label: t("elig_check_additional"),
+      label: t(`elig_condition_${conditionKey}`),
       detail: t("elig_narrative_detail"),
     };
   }
