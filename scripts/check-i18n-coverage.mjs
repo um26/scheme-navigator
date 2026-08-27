@@ -121,12 +121,15 @@ for (const locale of EXPECTED_LOCALES) {
 }
 
 // Catch t("typo_or_missing_key") before it can become a raw key or English fallback.
+// Dynamic template keys such as t(`profile_relation_${key}`) are intentionally
+// validated through their concrete English key families, not as one literal key.
 const referenced = new Map();
 for (const root of [path.join(ROOT, "app"), path.join(ROOT, "components")]) {
   for (const file of walk(root)) {
     const source = readFileSync(file, "utf8");
     for (const match of source.matchAll(/\bt\(\s*["'`]([^"'`]+)["'`]/g)) {
       const key = match[1];
+      if (key.includes("${")) continue;
       if (!referenced.has(key)) referenced.set(key, []);
       referenced.get(key).push(path.relative(ROOT, file));
     }

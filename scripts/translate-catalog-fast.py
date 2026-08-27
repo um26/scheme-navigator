@@ -76,11 +76,12 @@ def load_ui_manifest():
     return {"version": 1, "model": base.MODEL_NAME, "keys": {}, "locales": {}}, False
 
 
-def write_ui_manifest(manifest, key_hashes):
+def write_ui_manifest(manifest, key_hashes, changed: bool):
     UI_MANIFEST.parent.mkdir(parents=True, exist_ok=True)
     manifest["version"] = 1
     manifest["model"] = base.MODEL_NAME
-    manifest["generatedAt"] = datetime.now(timezone.utc).isoformat()
+    if changed or not manifest.get("generatedAt"):
+        manifest["generatedAt"] = datetime.now(timezone.utc).isoformat()
     manifest["sourceHash"] = aggregate_source_hash(key_hashes)
     manifest["keys"] = key_hashes
     UI_MANIFEST.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -88,9 +89,34 @@ def write_ui_manifest(manifest, key_hashes):
 
 
 class FastTranslator(base.Translator):
+    # The model is multilingual. Loading it once and only switching the target code
+    # makes 22-locale UI refreshes dramatically cheaper on CPU/GPU runners.
+    _shared_runtime = None
+
     def __init__(self, target_lang: str, batch_size: int, beams: int):
         self.beams = beams
-        super().__init__(target_lang, batch_size)
+        self.target = target_lang
+        self.batch_size = batch_size
+        if FastTranslator._shared_runtime is None:
+            super().__init__(target_lang, batch_size)
+            FastTranslator._shared_runtime = (
+                self.torch,
+                self.device,
+                self.tokenizer,
+                self.model,
+                self.processor,
+            )
+        else:
+            (
+                self.torch,
+                self.device,
+                self.tokenizer,
+                self.model,
+                self.processor,
+            ) = FastTranslator._shared_runtime
+            print(f"[i18n] reusing loaded IndicTrans2 model for {target_lang}", flush=True)
+        self.target = target_lang
+        self.batch_size = batch_size
 
     def _translate_once(self, texts: list[str]) -> list[str]:
         batch = self.processor.preprocess_batch(texts, src_lang=base.SRC_LANG, tgt_lang=self.target)
@@ -305,10 +331,10 @@ def build_ui_only(
     for state in missing_states:
         state_map[state] = translated.get(state, state)
 
-    # Every explicit value in the output is now tied to the current English source.
     locale_manifest = {key: expected_hash for key, expected_hash in key_hashes.items() if base.clean_text(ui.get(key))}
     manifest.setdefault("locales", {})[locale] = locale_manifest
-    return ui, state_map, key_hashes
+    changed = bool(pending_keys or missing_states) or bootstrap_manifest
+    return ui, state_map, key_hashes, changed
 
 
 def build_stage(locale, target, schemes, ui_source, states, fields, batch_size, beams, tier):
@@ -383,12 +409,13 @@ def main():
     if args.tier == "ui":
         manifest, manifest_exists = load_ui_manifest()
         key_hashes = {}
+        manifest_changed = not manifest_exists
         for locale in requested:
             seed = {
                 **(existing_explicit.get(locale) or {}),
                 **(dictionaries.get(locale) or {}),
             }
-            ui, state_map, key_hashes = build_ui_only(
+            ui, state_map, key_hashes, locale_changed = build_ui_only(
                 locale,
                 base.LANGUAGES[locale],
                 ui_source,
@@ -402,9 +429,10 @@ def main():
             )
             dictionaries[locale] = ui
             state_maps[locale] = state_map
+            manifest_changed = manifest_changed or locale_changed
             # UI refreshes never change selector readiness.
             base.write_generated(dictionaries, state_maps, ready)
-        write_ui_manifest(manifest, key_hashes)
+        write_ui_manifest(manifest, key_hashes, manifest_changed)
         print("\nDone. UI refresh was incremental; scheme gzip packs were not touched.")
         return
 
