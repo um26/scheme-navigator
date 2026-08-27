@@ -1,0 +1,33 @@
+name: i18n release gate
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Export current UI source
+        run: node scripts/export-ui-source.mjs
+
+      - name: Check new hard-coded UI copy
+        env:
+          I18N_BASE_REF: origin/main
+        run: node scripts/lint-i18n-ui.mjs
+
+      - name: Check 22-language coverage and freshness
+        run: node scripts/check-i18n-coverage.mjs
