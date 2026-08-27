@@ -39,7 +39,7 @@ export default function BrowsePage({ searchParams }) {
   let filtered = schemes;
   if (region !== "All") filtered = region === "Central" ? filtered.filter((s) => s.level === "Central") : filtered.filter((s) => s.state === region);
   if (category !== "All") filtered = filtered.filter((s) => s.eligibility?.categories?.includes(category));
-  if (gender !== "any") filtered = filtered.filter((s) => (s.eligibility?.gender || "any") === gender;
+  if (gender !== "any") filtered = filtered.filter((s) => (s.eligibility?.gender || "any") === gender);
   if (q) filtered = searchSchemes(q, filtered, filtered.length || 1);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
