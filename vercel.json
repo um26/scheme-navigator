@@ -5,7 +5,8 @@
   "ignoreCommand": "exit 1",
   "git": {
     "deploymentEnabled": {
-      "work/i18n-darkmode-final": false
+      "main": true,
+      "*": false
     }
   }
 }
