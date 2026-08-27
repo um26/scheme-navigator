@@ -19,11 +19,11 @@ function SavedSkeleton() {
   );
 }
 
-const STATUS_LABELS = {
-  saved: "Saved",
-  preparing: "Preparing",
-  applied: "Applied",
-  completed: "Completed",
+const STATUS_LABEL_KEYS = {
+  saved: "application_status_saved",
+  preparing: "application_status_preparing",
+  applied: "application_status_applied",
+  completed: "application_status_completed",
 };
 
 export default function SavedPage() {
@@ -96,7 +96,7 @@ export default function SavedPage() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="font-display text-3xl text-ledger">{t("saved_title")}</h1>
-          <p className="mt-1 text-sm font-body text-muted">Your local application workspace — save, prepare, apply, and keep document progress in one place.</p>
+          <p className="mt-1 text-sm font-body text-muted">{t("saved_workspace_subtitle")}</p>
         </div>
         {(saved?.length || 0) >= 2 && (
           <button type="button" onClick={toggleCompareMode} aria-pressed={compareMode} className={`interactive-surface rounded-full border px-4 py-2 text-sm font-body font-semibold ${compareMode ? "border-bottle bg-bottle text-white" : "border-borderc bg-white/60 text-ink hover:bg-white"}`}>
@@ -106,10 +106,10 @@ export default function SavedPage() {
       </div>
 
       {hydrated && applicationsHydrated && ids.length > 0 && (
-        <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4" aria-label="Application status summary">
-          {Object.entries(STATUS_LABELS).map(([key, label]) => (
+        <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4" aria-label={t("saved_status_summary_aria")}>
+          {Object.entries(STATUS_LABEL_KEYS).map(([key, labelKey]) => (
             <div key={key} className="rounded-xl border border-borderc bg-white/50 p-3">
-              <p className="text-[11px] uppercase tracking-wide text-muted font-body">{label}</p>
+              <p className="text-[11px] uppercase tracking-wide text-muted font-body">{t(labelKey)}</p>
               <p className="mt-1 font-display text-2xl text-ledger">{statusCounts[key] || 0}</p>
             </div>
           ))}
