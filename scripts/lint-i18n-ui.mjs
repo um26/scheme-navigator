@@ -37,6 +37,8 @@ function looksHuman(text) {
   if (!value || value.length < 3) return false;
   if (/^https?:\/\//i.test(value) || /^\//.test(value)) return false;
   if (/^[A-Z0-9_./:+-]{2,10}$/.test(value)) return false; // SC, OBC, URLs/fragments, etc.
+  if (/^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$/i.test(value)) return false; // i18n/config keys
+  if (value.includes("${")) return false; // dynamic i18n template keys
   if (/^[✓×○★☆▾←→·•…❤\s]+$/.test(value)) return false;
   if (/^(Scheme Navigator|SCHEME NAVIGATOR|BinaryBots)$/i.test(value)) return false;
   if (/^[a-z0-9_-]+(?:\s+[a-z0-9_:/\[\].%-]+){2,}$/i.test(value) && /(?:bg-|text-|px-|py-|mt-|rounded|border|flex|grid)/.test(value)) return false;
