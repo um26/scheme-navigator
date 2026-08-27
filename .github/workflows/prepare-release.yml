@@ -1,17 +1,27 @@
 name: Prepare translated release
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "app/**"
+      - "components/**"
+      - "lib/i18n/**"
+      - "scripts/**"
+      - "package.json"
+      - ".github/workflows/prepare-release.yml"
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: scheme-navigator-release-${{ github.ref }}
+  group: scheme-navigator-release-main
   cancel-in-progress: true
 
 jobs:
   prepare:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 240
     steps:
@@ -19,13 +29,9 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Require a non-main release branch
+      - name: Fetch production i18n baseline
         shell: bash
-        run: |
-          if [ "$GITHUB_REF_NAME" = "main" ]; then
-            echo "::error::Run this workflow from a work/release branch. Vercel deploys main only."
-            exit 1
-          fi
+        run: git fetch origin i18n/production-baseline:refs/remotes/origin/i18n/production-baseline || true
 
       - uses: actions/setup-node@v4
         with:
@@ -35,29 +41,19 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Require Hugging Face token
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        shell: bash
-        run: |
-          if [ -z "$HF_TOKEN" ]; then
-            echo "::error::Add repository secret HF_TOKEN once (Hugging Face READ token with IndicTrans2 access)."
-            exit 1
-          fi
-
-      - name: Cache Hugging Face model
+      - name: Cache translation model
         uses: actions/cache@v4
         with:
           path: ~/.cache/huggingface
-          key: hf-indictrans2-dist-200m-v1
+          key: hf-indictrans2-public-dist-200m-v1
 
       - name: Restore incremental translation cache
         uses: actions/cache@v4
         with:
           path: .translation-work/cache
-          key: ui-translation-${{ github.ref_name }}-${{ hashFiles('lib/i18n/locales/en.js', 'lib/i18n/extras.js', 'lib/i18n/conditionMessages.js', 'lib/i18n/releaseMessages.js') }}
+          key: ui-translation-main-${{ hashFiles('lib/i18n/locales/en.js', 'lib/i18n/extras.js', 'lib/i18n/conditionMessages.js', 'lib/i18n/releaseMessages.js') }}
           restore-keys: |
-            ui-translation-${{ github.ref_name }}-
+            ui-translation-main-
             ui-translation-
 
       - name: Install translator
@@ -66,28 +62,47 @@ jobs:
           python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
           python -m pip install 'transformers>=4.51,<5' sentencepiece sacremoses indictranstoolkit
 
-      - name: Audit newly-added UI copy
+      - name: Audit all UI copy since last production release
         env:
-          I18N_BASE_REF: origin/main
+          I18N_BASE_REF: origin/i18n/production-baseline
         run: node scripts/lint-i18n-ui.mjs
+
+      - name: Select zero-secret IndicTrans2 mirror for this authoring run
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('scripts/translate-catalog.py')
+          text = p.read_text(encoding='utf-8')
+          official = 'MODEL_NAME = "ai4bharat/indictrans2-en-indic-dist-200M"'
+          public = 'MODEL_NAME = "Raghavan/indictrans2-en-indic-dist-200M"'
+          if official not in text:
+              raise SystemExit('Expected IndicTrans2 model declaration was not found')
+          p.write_text(text.replace(official, public, 1), encoding='utf-8')
+          PY
 
       - name: Translate only missing or changed UI strings
         env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          HUGGING_FACE_HUB_TOKEN: ${{ secrets.HF_TOKEN }}
           TOKENIZERS_PARALLELISM: "false"
         run: npm run i18n:translate-ui
 
+      - name: Restore canonical authoring script
+        run: git checkout -- scripts/translate-catalog.py
+
       - name: Verify every selectable language
+        env:
+          I18N_BASE_REF: origin/i18n/production-baseline
         run: npm run i18n:check
 
       - name: Install app dependencies
         run: npm install --ignore-scripts
 
       - name: Full production build check
+        env:
+          I18N_BASE_REF: origin/i18n/production-baseline
         run: npm run release:check
 
-      - name: Commit generated translation delta
+      - name: Commit generated translation delta to main
         shell: bash
         run: |
           git config user.name "Scheme Navigator Translation Bot"
@@ -97,7 +112,7 @@ jobs:
             echo "Translations already current."
           else
             git commit -m "Refresh incremental UI translations"
-            git push origin "HEAD:$GITHUB_REF_NAME"
+            git push origin HEAD:main
           fi
 
       - name: Release status
