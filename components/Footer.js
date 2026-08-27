@@ -17,9 +17,9 @@ export default function Footer() {
         </p>
         <p className="mt-1 text-xs">{t("footer_disclaimer")}</p>
         <div className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 text-[11px]">
-          <Link className="underline underline-offset-2 hover:text-saffron-dark" href="/diagnostics">Data health & freshness</Link>
+          <Link className="underline underline-offset-2 hover:text-saffron-dark" href="/diagnostics">{t("footer_data_health")}</Link>
           <span aria-hidden="true">·</span>
-          <Link className="underline underline-offset-2 hover:text-saffron-dark" href="/updates">Scheme change history</Link>
+          <Link className="underline underline-offset-2 hover:text-saffron-dark" href="/updates">{t("footer_scheme_changes")}</Link>
         </div>
       </div>
     </footer>
