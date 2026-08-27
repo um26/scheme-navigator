@@ -1,6 +1,6 @@
 // Conservative i18n linter for newly-added UI code.
-// It intentionally scans only added lines against main (or HEAD^) so legacy debt
-// cannot block releases, while new hard-coded English cannot quietly enter production.
+// It compares against the last production baseline when available, so a hard-coded
+// string cannot hide just because it was introduced several commits before release.
 import { execFileSync } from "node:child_process";
 
 function git(args, options = {}) {
@@ -18,6 +18,13 @@ function canRevParse(ref) {
 
 function chooseBase() {
   if (process.env.I18N_BASE_REF && canRevParse(process.env.I18N_BASE_REF)) return process.env.I18N_BASE_REF;
+
+  // Persistent release baseline: this branch is moved only after a verified
+  // production deployment. That makes the scan cover the entire development batch.
+  for (const ref of ["origin/i18n/production-baseline", "i18n/production-baseline"]) {
+    if (canRevParse(ref)) return ref;
+  }
+
   let branch = "";
   try { branch = git(["rev-parse", "--abbrev-ref", "HEAD"]); } catch {}
   if (branch !== "main" && canRevParse("origin/main")) return "origin/main";
@@ -112,7 +119,7 @@ for (const raw of diff.split("\n")) {
 }
 
 if (violations.length) {
-  console.error(`[i18n-lint] ${violations.length} newly-added hard-coded UI string(s) found.`);
+  console.error(`[i18n-lint] ${violations.length} newly-added hard-coded UI string(s) found since ${base}.`);
   for (const item of violations.slice(0, 40)) {
     console.error(`  ${item.file}:${item.line}  ${JSON.stringify(item.text)}`);
   }
@@ -121,4 +128,4 @@ if (violations.length) {
   process.exit(1);
 }
 
-console.log(`[i18n-lint] OK — no newly-added hard-coded UI copy versus ${base}.`);
+console.log(`[i18n-lint] OK — no newly-added hard-coded UI copy since ${base}.`);
