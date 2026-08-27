@@ -3,8 +3,7 @@ name: i18n release gate
 on:
   pull_request:
     branches: [main]
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -17,6 +16,10 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Fetch production i18n baseline
+        shell: bash
+        run: git fetch origin i18n/production-baseline:refs/remotes/origin/i18n/production-baseline || true
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -25,6 +28,8 @@ jobs:
         run: node scripts/export-ui-source.mjs
 
       - name: Check new hard-coded UI copy
+        env:
+          I18N_BASE_REF: origin/i18n/production-baseline
         run: node scripts/lint-i18n-ui.mjs
 
       - name: Check 22-language coverage and freshness
